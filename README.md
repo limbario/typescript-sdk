@@ -1,6 +1,8 @@
 # @limbar/ui
 
-UI components for Limbar applications.
+UI components for embedding Limbar products such as remote control of Android emulators in your applications.
+All components are built with React and written in TypeScript, exported as ES modules and can be used in any modern
+JavaScript environment.
 
 ## Installation
 
@@ -12,7 +14,17 @@ npm install @limbar/ui
 
 ### RemoteControl
 
-The `RemoteControl` component allows you to interact with a remote device via WebRTC.
+The `RemoteControl` component allows you to stream the screen of an Android emulator to your application as well as control it
+with your mouse and keyboard.
+
+Some of the features include:
+
+* Multiple users can connect to the same instance simultaneously which is super useful for
+  demos and presentations.
+  * You can build and deploy your app in a cloud editor that has `lim connect android` running and see your app
+    in the browser.
+* The component is optimized for low latency and high performance by using WebRTC as the transport layer for both video
+  and the control signals.
 
 #### Usage
 
