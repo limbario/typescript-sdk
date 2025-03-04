@@ -134,6 +134,36 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId 
     return buffer;
   };
 
+  const createSetClipboardMessage = (text: string, paste = true) => {
+    const encoder = new TextEncoder();
+    const textBytes = encoder.encode(text);
+    
+    // 1 byte for type + 8 bytes for sequence + 1 byte for paste flag + 4 bytes for length + text bytes
+    const buffer = new ArrayBuffer(14 + textBytes.length);
+    const view = new DataView(buffer);
+    let offset = 0;
+
+    view.setUint8(offset, CONTROL_MSG_TYPE.SET_CLIPBOARD);
+    offset += 1;
+
+    // Use 0 as sequence since we don't need an acknowledgement
+    view.setBigInt64(offset, BigInt(0), false);
+    offset += 8;
+
+    // Set paste flag
+    view.setUint8(offset, paste ? 1 : 0);
+    offset += 1;
+
+    // Text length
+    view.setUint32(offset, textBytes.length, false);
+    offset += 4;
+
+    // Text data
+    new Uint8Array(buffer, offset).set(textBytes);
+
+    return buffer;
+  };
+
   const createInjectKeycodeMessage = (
     action: number,
     keycode: number,
@@ -305,6 +335,25 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId 
 
     if (!dataChannelRef.current || dataChannelRef.current.readyState !== 'open') {
       console.warn('Data channel not ready for keyboard event:', dataChannelRef.current?.readyState);
+      return;
+    }
+
+    // Handle paste shortcut (Cmd+V on macOS, Ctrl+V on Windows/Linux)
+    if (event.type === 'keydown' && event.key.toLowerCase() === 'v' && (event.metaKey || event.ctrlKey)) {
+      console.log('Paste shortcut detected');
+      
+      // Use the clipboard API to get text
+      navigator.clipboard.readText().then(text => {
+        if (text) {
+          console.log('Pasting text from clipboard API:', text.substring(0, 20) + (text.length > 20 ? '...' : ''));
+          const message = createSetClipboardMessage(text, true);
+          sendBinaryControlMessage(message);
+        }
+      }).catch(err => {
+        console.error('Failed to read clipboard contents: ', err);
+      });
+      
+      event.preventDefault();
       return;
     }
 
