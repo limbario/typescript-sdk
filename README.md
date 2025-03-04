@@ -50,6 +50,28 @@ function MyRemoteControl() {
 | `className` | string? | Optional class name to apply to the component on top of the default styles |
 | `sessionId` | string? | Optional unique identifier for the WebRTC session to prevent conflicts between users connected to the same source. If not provided, a random one will be generated |
 
+## Contributing
+
+To get the demo working, edit `src/demo.tsx` to use your own instance URL and token.
+
+```bash
+npm install
+npm run dev
+```
+
+### Releasing
+
+To release a new version, follow these steps:
+
+1. Bump the version in `package.json` and push to the repository.
+2. Create a new release on GitHub with the same name as the new version.
+3. Run the following commands:
+
+   ```bash
+   npm run build
+   npm publish
+   ```
+
 ## License
 
 MIT
