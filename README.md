@@ -40,11 +40,12 @@ Here is a quick example of instance creation using the Limbar API:
 ORGANIZATION_ID=your-organization-id
 LIMBAR_API_KEY=your-api-key
 REGION=eu-north1
+NAME=your-instance-name
 
-curl -X POST https://$REGION.limbar.net/apis/android.limbar.io/v1alpha1/organizations/$ORGANIZATION_ID/instances?wait=true \
+curl -X PUT "https://$REGION.limbar.net/apis/android.limbar.io/v1alpha1/organizations/$ORGANIZATION_ID/instances?wait=true" \
   -H "Authorization: Bearer $LIMBAR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"name": "72ml20p2bb", "organizationId": "$ORGANIZATION_ID"}'
+  -d "{\"instance\": {\"metadata\": {\"name\": \"$NAME\", \"organizationId\": \"$ORGANIZATION_ID\"}}, \"wait\": true}"
 ```
 
 The response will contain the instance's WebRTC URL:
@@ -52,14 +53,14 @@ The response will contain the instance's WebRTC URL:
 ```json
 {
     "metadata": {
-        "createdAt": "2025-03-05T12:49:01Z",
-        "name": "72ml20p2bb",
+        "createdAt": "2024-12-05T12:49:01Z",
+        "name": "<name>",
         "organizationId": "<org id>"
     },
     "status": {
-        "connectionUrl": "https://eu-hel1-3-2585842.limbar.net/apis/android.limbar.io/v1alpha1/organizations/<org id>/instances/72ml20p2bb/connect",
+        "connectionUrl": "https://eu-hel1-3-2585842.limbar.net/apis/android.limbar.io/v1alpha1/organizations/<org id>/instances/<name>/connect",
         "state": "ready",
-        "webrtcUrl": "https://eu-hel1-3-2585842.limbar.net/apis/android.limbar.io/v1alpha1/organizations/<org id>/instances/72ml20p2bb/webrtc"
+        "webrtcUrl": "https://eu-hel1-3-2585842.limbar.net/apis/android.limbar.io/v1alpha1/organizations/<org id>/instances/<name>/webrtc"
     }
 }
 ```
