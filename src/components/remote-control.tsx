@@ -660,7 +660,7 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId 
     >
       <video
         ref={videoRef}
-        className="max-h-full max-w-full object-contain"
+        className="max-h-full h-full max-w-full object-contain"
         autoPlay
         playsInline
         tabIndex={0}
