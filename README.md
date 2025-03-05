@@ -1,8 +1,9 @@
 # @limbar/ui
 
-UI components for embedding Limbar products such as remote control of Android emulators in your applications.
-All components are built with React and written in TypeScript, exported as ES modules and can be used in any modern
-JavaScript environment.
+UI components for embedding [Limbar](https://limbar.io) products such as remote control of
+Android emulators in your web applications.
+All components are built with React and written in TypeScript, exported as ES modules and
+can be used in any modern JavaScript environment.
 
 ## Installation
 
@@ -28,13 +29,50 @@ Some of the features include:
 
 #### Usage
 
+The URL of the instance and a token to authenticate the connection are required.
+You can create a new instance programmatically using the Limbar API or manually in the
+[Limbar Console](https://console.limbar.io). For the full API reference, see the
+[Limbar API Reference](https://limbar.io/docs/api-reference).
+
+Here is a quick example of instance creation using the Limbar API:
+
+```bash
+ORGANIZATION_ID=your-organization-id
+LIMBAR_API_KEY=your-api-key
+REGION=eu-north1
+
+curl -X POST https://$REGION.limbar.net/apis/android.limbar.io/v1alpha1/organizations/$ORGANIZATION_ID/instances?wait=true \
+  -H "Authorization: Bearer $LIMBAR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "72ml20p2bb", "organizationId": "$ORGANIZATION_ID"}'
+```
+
+The response will contain the instance's WebRTC URL:
+
+```json
+{
+    "metadata": {
+        "createdAt": "2025-03-05T12:49:01Z",
+        "name": "72ml20p2bb",
+        "organizationId": "<org id>"
+    },
+    "status": {
+        "connectionUrl": "https://eu-hel1-3-2585842.limbar.net/apis/android.limbar.io/v1alpha1/organizations/<org id>/instances/72ml20p2bb/connect",
+        "state": "ready",
+        "webrtcUrl": "https://eu-hel1-3-2585842.limbar.net/apis/android.limbar.io/v1alpha1/organizations/<org id>/instances/72ml20p2bb/webrtc"
+    }
+}
+```
+
+The `status.webrtcUrl` is the URL of the WebRTC endpoint and can be used to connect to the instance.
+
 ```jsx
 import { RemoteControl } from '@limbar/ui';
 
 function MyRemoteControl() {
   return (
     <RemoteControl 
-      url="https://your-connection-url" 
+      url="https://your-webrtc-url" 
       token="your-auth-token"
     />
   );
