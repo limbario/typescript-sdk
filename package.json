@@ -1,7 +1,7 @@
 {
   "name": "@limbar/ui",
   "private": false,
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "UI components for embedding Limbar products such as remote control of Android emulators in your applications.",
   "type": "module",
   "files": [
