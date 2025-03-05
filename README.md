@@ -49,6 +49,7 @@ function MyRemoteControl() {
 | `token` | string | Token used to authenticate the connection to the instance |
 | `className` | string? | Optional class name to apply to the component on top of the default styles |
 | `sessionId` | string? | Optional unique identifier for the WebRTC session to prevent conflicts between users connected to the same source. If not provided, a random one will be generated |
+| `openUrl` | string? | Optional URL to open in the instance when the component is ready, such as an Expo URL |
 
 ## Contributing
 

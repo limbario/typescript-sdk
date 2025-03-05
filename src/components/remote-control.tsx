@@ -18,6 +18,12 @@ interface RemoteControlProps {
   // users connected to the same source.
   // If empty, the component will generate a random one.
   sessionId?: string;
+
+  // openUrl is the URL to open in the instance when the
+  // component is ready.
+  //
+  // If not provided, the component will not open any URL.
+  openUrl?: string;
 }
 
 const CONTROL_MSG_TYPE = {
@@ -55,7 +61,7 @@ const ANDROID_KEYS = {
   META_NONE: 0,
 } as const;
 
-export function RemoteControl({ className, url, token, sessionId: propSessionId }: RemoteControlProps) {
+export function RemoteControl({ className, url, token, sessionId: propSessionId, openUrl }: RemoteControlProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
@@ -504,6 +510,26 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId 
         // Request first frame once we're ready to receive video
         if (wsRef.current) {
           wsRef.current.send(JSON.stringify({ type: 'requestFrame', sessionId: sessionId }));
+          
+          // Send openUrl message if the prop is provided
+          if (openUrl) {
+            try {
+              const decodedUrl = decodeURIComponent(openUrl);
+              updateStatus('Opening URL');
+              wsRef.current.send(JSON.stringify({
+                type: 'openUrl',
+                url: decodedUrl,
+                sessionId: sessionId
+              }));
+            } catch (error) {
+              console.error({error}, 'Error decoding URL, falling back to the original URL');
+              wsRef.current.send(JSON.stringify({
+                type: 'openUrl',
+                url: openUrl,
+                sessionId: sessionId
+              }));
+            }
+          }
         }
       };
       
