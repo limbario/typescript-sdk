@@ -2,9 +2,17 @@
 
 This example shows how to embed an Android emulator in your web application.
 
-## Running the example
+There are two parts to the example:
 
-The [backend](./backend) is a simple Node.js service that creates a new Android instance and returns the connection token.
+* [backend](./backend) - A simple Node.js service that creates a new Android
+  instance with organization token and returns the instance details including
+  the instance-specific connection token.
+
+* [frontend](./frontend) - A simple React application that calls the backend
+  and runs the Android emulator instance via `RemoteControl` component from
+  `@limbar/ui`.
+
+## Running the example
 
 1. You need to acquire a valid API token from Limbar and set it in the `.env` file.
    See [backend/.env.example](./backend/.env.example) for the required variables.

@@ -15,7 +15,7 @@ A simple Express.js backend for creating Android instances through the Limbar AP
    ```bash
    API_TOKEN=your_api_token_here
    ORGANIZATION_ID=your_organization_id_here
-   REGION=us-east1  # The region for the Limbar API
+   REGION=eu-north1
    ```
 
 3. Start the server:
