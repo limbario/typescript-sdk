@@ -11,6 +11,13 @@ can be used in any modern JavaScript environment.
 npm install @limbar/ui
 ```
 
+## Examples
+
+### Embed an Android emulator in your web application
+
+See a full example of how to embed an Android emulator in your web application in the
+[examples/simple](./examples/simple) directory.
+
 ## Components
 
 ### RemoteControl
