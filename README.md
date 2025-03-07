@@ -68,7 +68,8 @@ The response will contain the instance's WebRTC URL:
         "connectionUrl": "https://eu-hel1-3-2585842.limbar.net/apis/android.limbar.io/v1alpha1/organizations/<org id>/instances/<name>/connect",
         "state": "ready",
         "webrtcUrl": "https://eu-hel1-3-2585842.limbar.net/apis/android.limbar.io/v1alpha1/organizations/<org id>/instances/<name>/webrtc"
-    }
+    },
+    "token": "<instance-specific-token>"
 }
 ```
 
