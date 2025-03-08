@@ -55,7 +55,8 @@ const AMOTION_EVENT = {
 
 const ANDROID_KEYS = {
   ENTER: 66, // KEYCODE_ENTER
-  DEL: 67,   // KEYCODE_DEL
+  DEL: 67,   // KEYCODE_DEL (Backspace)
+  FORWARD_DEL: 112, // KEYCODE_FORWARD_DEL (Delete key)
   MENU: 82,  // KEYCODE_MENU
   DPAD_UP: 19,    // KEYCODE_DPAD_UP
   DPAD_DOWN: 20,  // KEYCODE_DPAD_DOWN
@@ -396,7 +397,7 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
     }
 
     // Handle arrow keys
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Backspace'].includes(event.key)) {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Backspace', 'Delete'].includes(event.key)) {
       let keycode: number;
       
       switch (event.key) {
@@ -417,6 +418,9 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
           break;
         case 'Backspace':
           keycode = ANDROID_KEYS.DEL;
+          break;
+        case 'Delete':
+          keycode = ANDROID_KEYS.FORWARD_DEL;
           break;
         default:
           return;
