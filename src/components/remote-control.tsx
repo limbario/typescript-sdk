@@ -326,6 +326,7 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
   };
 
   const handleKeyboard = (event: React.KeyboardEvent) => {
+    event.preventDefault();
     console.log('Keyboard event:', {
       type: event.type,
       key: event.key,
@@ -359,12 +360,12 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
       }).catch(err => {
         console.error('Failed to read clipboard contents: ', err);
       });
-      
-      event.preventDefault();
       return;
     }
     // Handle menu shortcut (Cmd+M on macOS, Ctrl+M on Windows/Linux)
     if (event.type === 'keydown' && event.key.toLowerCase() === 'm' && (event.metaKey || event.ctrlKey)) {
+      console.log('Menu shortcut detected');
+      
       // Send KEYCODE_MENU down
       const messageDown = createInjectKeycodeMessage(
         ANDROID_KEYS.ACTION_DOWN,
@@ -373,7 +374,6 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
         ANDROID_KEYS.META_NONE
       );
       sendBinaryControlMessage(messageDown);
-
       // Send KEYCODE_MENU up
       const messageUp = createInjectKeycodeMessage(
         ANDROID_KEYS.ACTION_UP,
@@ -382,8 +382,6 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
         ANDROID_KEYS.META_NONE
       );
       sendBinaryControlMessage(messageUp);
-
-      event.preventDefault();
       return;
     }
 
@@ -394,7 +392,6 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
     if (event.key.length === 1) {
       const message = createInjectTextMessage(event.key);
       sendBinaryControlMessage(message);
-      event.preventDefault();
     } else if (event.key === 'Enter' || event.key === 'Backspace') {
       const keycode = event.key === 'Enter' ? ANDROID_KEYS.ENTER : ANDROID_KEYS.DEL;
       
@@ -415,7 +412,6 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
         ANDROID_KEYS.META_NONE
       );
       sendBinaryControlMessage(messageUp);
-      event.preventDefault();
     }
   };
 
