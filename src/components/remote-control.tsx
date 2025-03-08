@@ -216,6 +216,11 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
       return;
     }
 
+    // Skip mousemove events only when no button is pressed (hover events)
+    if (!('touches' in event) && event.type === 'mousemove' && (event as React.MouseEvent).buttons === 0) {
+      return;
+    }
+
     const video = videoRef.current;
     const rect = video.getBoundingClientRect();
 
