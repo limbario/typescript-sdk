@@ -56,6 +56,7 @@ const AMOTION_EVENT = {
 const ANDROID_KEYS = {
   ENTER: 66, // KEYCODE_ENTER
   DEL: 67,   // KEYCODE_DEL
+  MENU: 82,  // KEYCODE_MENU
   ACTION_DOWN: 0,
   ACTION_UP: 1,
   META_NONE: 0,
@@ -359,6 +360,29 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
         console.error('Failed to read clipboard contents: ', err);
       });
       
+      event.preventDefault();
+      return;
+    }
+    // Handle menu shortcut (Cmd+M on macOS, Ctrl+M on Windows/Linux)
+    if (event.type === 'keydown' && event.key.toLowerCase() === 'm' && (event.metaKey || event.ctrlKey)) {
+      // Send KEYCODE_MENU down
+      const messageDown = createInjectKeycodeMessage(
+        ANDROID_KEYS.ACTION_DOWN,
+        ANDROID_KEYS.MENU,
+        0,
+        ANDROID_KEYS.META_NONE
+      );
+      sendBinaryControlMessage(messageDown);
+
+      // Send KEYCODE_MENU up
+      const messageUp = createInjectKeycodeMessage(
+        ANDROID_KEYS.ACTION_UP,
+        ANDROID_KEYS.MENU,
+        0,
+        ANDROID_KEYS.META_NONE
+      );
+      sendBinaryControlMessage(messageUp);
+
       event.preventDefault();
       return;
     }
