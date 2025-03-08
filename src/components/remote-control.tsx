@@ -57,6 +57,10 @@ const ANDROID_KEYS = {
   ENTER: 66, // KEYCODE_ENTER
   DEL: 67,   // KEYCODE_DEL
   MENU: 82,  // KEYCODE_MENU
+  DPAD_UP: 19,    // KEYCODE_DPAD_UP
+  DPAD_DOWN: 20,  // KEYCODE_DPAD_DOWN
+  DPAD_LEFT: 21,  // KEYCODE_DPAD_LEFT
+  DPAD_RIGHT: 22, // KEYCODE_DPAD_RIGHT
   ACTION_DOWN: 0,
   ACTION_UP: 1,
   META_NONE: 0,
@@ -327,6 +331,7 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
 
   const handleKeyboard = (event: React.KeyboardEvent) => {
     event.preventDefault();
+    event.stopPropagation();
     console.log('Keyboard event:', {
       type: event.type,
       key: event.key,
@@ -385,33 +390,45 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
       return;
     }
 
-    if (event.type !== 'keydown') {
+    // Handle arrow keys
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Backspace'].includes(event.key)) {
+      let keycode: number;
+      
+      switch (event.key) {
+        case 'ArrowUp':
+          keycode = ANDROID_KEYS.DPAD_UP;
+          break;
+        case 'ArrowDown':
+          keycode = ANDROID_KEYS.DPAD_DOWN;
+          break;
+        case 'ArrowLeft':
+          keycode = ANDROID_KEYS.DPAD_LEFT;
+          break;
+        case 'ArrowRight':
+          keycode = ANDROID_KEYS.DPAD_RIGHT;
+          break;
+        case 'Enter':
+          keycode = ANDROID_KEYS.ENTER;
+          break;
+        case 'Backspace':
+          keycode = ANDROID_KEYS.DEL;
+          break;
+        default:
+          return;
+      }
+      const message = createInjectKeycodeMessage(
+        event.type === 'keydown' ? ANDROID_KEYS.ACTION_DOWN : ANDROID_KEYS.ACTION_UP,
+        keycode,
+        0,
+        ANDROID_KEYS.META_NONE
+      );
+      sendBinaryControlMessage(message);
       return;
     }
 
-    if (event.key.length === 1) {
+    if (event.type === 'keydown' && event.key.length === 1) {
       const message = createInjectTextMessage(event.key);
       sendBinaryControlMessage(message);
-    } else if (event.key === 'Enter' || event.key === 'Backspace') {
-      const keycode = event.key === 'Enter' ? ANDROID_KEYS.ENTER : ANDROID_KEYS.DEL;
-      
-      // Send key down
-      const messageDown = createInjectKeycodeMessage(
-        ANDROID_KEYS.ACTION_DOWN,
-        keycode,
-        0,
-        ANDROID_KEYS.META_NONE
-      );
-      sendBinaryControlMessage(messageDown);
-
-      // Send key up
-      const messageUp = createInjectKeycodeMessage(
-        ANDROID_KEYS.ACTION_UP,
-        keycode,
-        0,
-        ANDROID_KEYS.META_NONE
-      );
-      sendBinaryControlMessage(messageUp);
     }
   };
 
@@ -715,6 +732,7 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
         onMouseMove={handleMouse}
         onMouseUp={handleMouse}
         onKeyDown={handleKeyboard}
+        onKeyUp={handleKeyboard}
         onClick={handleVideoClick}
         onFocus={() => {
           if (videoRef.current) {
