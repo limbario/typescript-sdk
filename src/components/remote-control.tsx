@@ -334,16 +334,23 @@ function getAndroidKeycodeAndMeta(event: React.KeyboardEvent): { keycode: number
   const keycode = codeMap[code];
 
   if (!keycode) {
-    // If the physical key code isn't in our map, we can't send a keycode event.
-    // Log the code to potentially add it later if needed.
     console.warn(`Unknown event.code: ${code}, key: ${event.key}`);
     return null;
   }
 
   let metaState = ANDROID_KEYS.META_NONE;
+  const isLetter = code >= 'KeyA' && code <= 'KeyZ';
+  const isCapsLock = event.getModifierState("CapsLock");
+  const isShiftPressed = event.shiftKey;
 
-  // Determine meta state SOLELY based on modifier keys pressed.
-  if (event.shiftKey) metaState |= ANDROID_KEYS.META_SHIFT_ON;
+  // Determine effective shift state
+  let effectiveShift = isShiftPressed;
+  if (isLetter) {
+    effectiveShift = isShiftPressed !== isCapsLock; // Logical XOR for booleans
+  }
+
+  // Apply meta states
+  if (effectiveShift) metaState |= ANDROID_KEYS.META_SHIFT_ON;
   if (event.ctrlKey) metaState |= ANDROID_KEYS.META_CTRL_ON;
   if (event.altKey) metaState |= ANDROID_KEYS.META_ALT_ON;
   if (event.metaKey) metaState |= ANDROID_KEYS.META_META_ON; // Command on Mac, Windows key on Win
