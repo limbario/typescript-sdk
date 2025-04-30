@@ -2,6 +2,12 @@ import React, { useEffect, useRef, useState, useMemo } from 'react'
 import { clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
+declare global {
+  interface Window {
+    debugRemoteControl?: boolean;
+  }
+}
+
 interface RemoteControlProps {
   // url is the URL of the instance to connect to.
   url: string;
@@ -329,12 +335,25 @@ const codeMap: { [code: string]: number } = {
   'NumpadEqual': ANDROID_KEYS.KEYCODE_NUMPAD_EQUALS,
 };
 
+const debugLog = (...args: any[]) => {
+  if (window.debugRemoteControl) {
+    console.log(...args);
+  }
+};
+
+const debugWarn = (...args: any[]) => {
+  if (window.debugRemoteControl) {
+    console.warn(...args);
+  }
+};
+
 function getAndroidKeycodeAndMeta(event: React.KeyboardEvent): { keycode: number, metaState: number } | null {
   const code = event.code;
   const keycode = codeMap[code];
 
   if (!keycode) {
-    console.warn(`Unknown event.code: ${code}, key: ${event.key}`);
+    // Use the wrapper for conditional warning
+    debugWarn(`Unknown event.code: ${code}, key: ${event.key}`);
     return null;
   }
 
@@ -376,7 +395,8 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
   );
 
   const updateStatus = (message: string) => {
-    console.log(message);
+    // Use the wrapper for conditional logging
+    debugLog(message);
   };
 
   const createTouchControlMessage = (
@@ -480,7 +500,6 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
 
   const sendBinaryControlMessage = (data: ArrayBuffer) => {
     if (!dataChannelRef.current || dataChannelRef.current.readyState !== 'open') {
-      // console.warn("Data channel not open, cannot send message."); // Reduced verbosity
       return;
     }
     dataChannelRef.current.send(data);
@@ -653,7 +672,8 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
   const handleKeyboard = (event: React.KeyboardEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    console.log('Keyboard event:', {
+    // Use the wrapper for conditional logging
+    debugLog('Keyboard event:', {
       type: event.type,
       key: event.key,
       keyCode: event.keyCode,
@@ -663,12 +683,14 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
     });
 
     if (document.activeElement !== videoRef.current) {
-      console.warn('Video element not focused, skipping keyboard event');
+      // Use the wrapper for conditional warning
+      debugWarn('Video element not focused, skipping keyboard event');
       return;
     }
 
     if (!dataChannelRef.current || dataChannelRef.current.readyState !== 'open') {
-      console.warn('Data channel not ready for keyboard event:', dataChannelRef.current?.readyState);
+      // Use the wrapper for conditional warning
+      debugWarn('Data channel not ready for keyboard event:', dataChannelRef.current?.readyState);
       return;
     }
 
@@ -676,10 +698,10 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
     if (event.type === 'keydown') {
       // Paste (Cmd+V / Ctrl+V)
       if (event.key.toLowerCase() === 'v' && (event.metaKey || event.ctrlKey)) {
-        console.log('Paste shortcut detected');
+        debugLog('Paste shortcut detected');
         navigator.clipboard.readText().then(text => {
           if (text) {
-            console.log('Pasting text via SET_CLIPBOARD:', text.substring(0, 20) + (text.length > 20 ? '...' : ''));
+            debugLog('Pasting text via SET_CLIPBOARD:', text.substring(0, 20) + (text.length > 20 ? '...' : ''));
             const message = createSetClipboardMessage(text, true); // paste=true
             sendBinaryControlMessage(message);
           }
@@ -691,7 +713,7 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
       
       // Menu (Cmd+M / Ctrl+M) - Send down and up immediately
       if (event.key.toLowerCase() === 'm' && (event.metaKey || event.ctrlKey)) {
-        console.log('Menu shortcut detected');
+        debugLog('Menu shortcut detected');
         const messageDown = createInjectKeycodeMessage(
           ANDROID_KEYS.ACTION_DOWN,
           ANDROID_KEYS.MENU,
@@ -717,7 +739,7 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
       const { keycode, metaState } = keyInfo;
       const action = event.type === 'keydown' ? ANDROID_KEYS.ACTION_DOWN : ANDROID_KEYS.ACTION_UP;
       
-      console.log(`Sending Keycode: key=${event.key}, code=${keycode}, action=${action}, meta=${metaState}`);
+      debugLog(`Sending Keycode: key=${event.key}, code=${keycode}, action=${action}, meta=${metaState}`);
 
       const message = createInjectKeycodeMessage(
         action,
@@ -727,7 +749,7 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
       );
       sendBinaryControlMessage(message);
     } else {
-       console.log(`Ignoring unhandled key event: type=${event.type}, key=${event.key}`);
+       debugLog(`Ignoring unhandled key event: type=${event.type}, key=${event.key}`);
     }
   };
 
@@ -827,8 +849,9 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
         
         try {
           videoTransceiver.setCodecPreferences(sortedCodecs);
-          console.log('Codec preferences set:', sortedCodecs);
+          debugLog('Codec preferences set:', sortedCodecs);
         } catch (e) {
+          // Keep this as console.warn as it's a potentially important issue even when not debugging
           console.warn('Failed to set codec preferences:', e);
         }
       }
@@ -892,7 +915,7 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
       peerConnectionRef.current.ontrack = (event) => {
         updateStatus('Received remote track: ' + event.track.kind);
         if (event.track.kind === 'video' && videoRef.current) {
-          console.log(`[${new Date().toISOString()}] Video track received:`, event.track);
+          debugLog(`[${new Date().toISOString()}] Video track received:`, event.track);
           videoRef.current.srcObject = event.streams[0];
         }
       };
