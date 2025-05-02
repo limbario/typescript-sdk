@@ -123,6 +123,7 @@ To release a new version, follow these steps:
 1. Run the following commands:
 
    ```bash
+   export NPM_TOKEN=<npm token to publish>
    npm run build
    npm publish
    ```
