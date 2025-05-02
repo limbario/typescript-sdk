@@ -12,37 +12,5 @@ specifically region endpoints and main Limbar API with following features:
 Here is an example API call made to `eu-north1` region using this client.
 
 ```ts
-import { createRegionClient, type RegionClientOptions } from '@limbar/api';
 
-const options: RegionClientOptions = {
-  baseUrl: 'https://your-api.example.com',
-  headers: {
-    Authorization: `Bearer YOUR_API_TOKEN`,
-  },
-};
-
-const regionClient = createRegionClient(options);
-
-async function listReadyInstances(organizationId: string) {
-  const { data, error, response } = await regionClient.GET("/apis/android.limbar.io/v1alpha1/organizations/{organizationId}/instances", {
-    params: {
-      path: { organizationId },
-      query: { state: 'ready' } // Optional: Filter by state
-    }
-  });
-
-  if (error) {
-    console.error(`API Error (${response.status}):`, error);
-    throw error; // Or handle the error appropriately
-  }
-
-  // data is fully typed based on your OpenAPI schema
-  console.log('Ready Instances:', data);
-  return data; // data type: components["schemas"]["AndroidInstance"][] | undefined
-}
-
-listReadyInstances('your-org-id')
-  .catch(err => {
-    console.error("Failed to list instances:", err);
-  });
 ```
