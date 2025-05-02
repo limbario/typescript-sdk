@@ -2,6 +2,12 @@ import React, { useEffect, useRef, useState, useMemo } from 'react'
 import { clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
+declare global {
+  interface Window {
+    debugRemoteControl?: boolean;
+  }
+}
+
 interface RemoteControlProps {
   // url is the URL of the instance to connect to.
   url: string;
@@ -329,12 +335,25 @@ const codeMap: { [code: string]: number } = {
   'NumpadEqual': ANDROID_KEYS.KEYCODE_NUMPAD_EQUALS,
 };
 
+const debugLog = (...args: any[]) => {
+  if (window.debugRemoteControl) {
+    console.log(...args);
+  }
+};
+
+const debugWarn = (...args: any[]) => {
+  if (window.debugRemoteControl) {
+    console.warn(...args);
+  }
+};
+
 function getAndroidKeycodeAndMeta(event: React.KeyboardEvent): { keycode: number, metaState: number } | null {
   const code = event.code;
   const keycode = codeMap[code];
 
   if (!keycode) {
-    console.warn(`Unknown event.code: ${code}, key: ${event.key}`);
+    // Use the wrapper for conditional warning
+    debugWarn(`Unknown event.code: ${code}, key: ${event.key}`);
     return null;
   }
 
@@ -366,13 +385,18 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const keepAliveIntervalRef = useRef<number | undefined>(undefined);
   
+  // Map to track active pointers (mouse or touch) and their last known position inside the video
+  // Key: pointerId (-1 for mouse, touch.identifier for touch), Value: { x: number, y: number }
+  const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+
   const sessionId = useMemo(() => 
     propSessionId || Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
     [propSessionId]
   );
 
   const updateStatus = (message: string) => {
-    console.log(message);
+    // Use the wrapper for conditional logging
+    debugLog(message);
   };
 
   const createTouchControlMessage = (
@@ -481,7 +505,8 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
     dataChannelRef.current.send(data);
   };
 
-  const handleMouse = (event: React.MouseEvent | React.TouchEvent) => {
+  // Unified handler for both mouse and touch interactions
+  const handleInteraction = (event: React.MouseEvent | React.TouchEvent) => {
     event.preventDefault();
     event.stopPropagation();
 
@@ -489,128 +514,166 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
       return;
     }
 
-    // Skip mousemove events only when no button is pressed (hover events)
-    if (!('touches' in event) && event.type === 'mousemove' && (event as React.MouseEvent).buttons === 0) {
-      return;
-    }
-
     const video = videoRef.current;
     const rect = video.getBoundingClientRect();
-
-    // Get coordinates
-    let clientX: number, clientY: number;
-    if ('touches' in event) {
-      // For touch events, always treat as a tap
-      const touch = event.touches[0] || event.changedTouches[0];
-      clientX = touch.clientX;
-      clientY = touch.clientY;
-    } else if ('clientX' in event) {
-      clientX = event.clientX;
-      clientY = event.clientY;
-    } else {
-      return;
-    }
-
-    // Get the actual video dimensions
     const videoWidth = video.videoWidth;
     const videoHeight = video.videoHeight;
 
-    // Get the display dimensions
-    const displayWidth = rect.width;
-    const displayHeight = rect.height;
+    if (!videoWidth || !videoHeight) return; // Video dimensions not ready
 
-    // Calculate the video's position within its container
-    const videoAspectRatio = videoWidth / videoHeight;
-    const containerAspectRatio = displayWidth / displayHeight;
+    // Helper to process a single pointer event (either mouse or a single touch point)
+    const processPointer = ( 
+      pointerId: number, 
+      clientX: number, 
+      clientY: number, 
+      eventType: 'down' | 'move' | 'up' | 'cancel' 
+    ) => {
 
-    // Calculate the actual dimensions of the video within the container
-    let actualWidth = displayWidth;
-    let actualHeight = displayHeight;
-    if (videoAspectRatio > containerAspectRatio) {
-      // Video is wider than container
-      actualHeight = displayWidth / videoAspectRatio;
-    } else {
-      // Video is taller than container
-      actualWidth = displayHeight * videoAspectRatio;
-    }
-
-    // Calculate the offset of the video within the container
-    const offsetX = (displayWidth - actualWidth) / 2;
-    const offsetY = (displayHeight - actualHeight) / 2;
-
-    // Adjust coordinates relative to the video's actual position
-    const relativeX = clientX - rect.left - offsetX;
-    const relativeY = clientY - rect.top - offsetY;
-
-    // Check if the click is within the actual video area
-    if (
-      relativeX < 0 ||
-      relativeX > actualWidth ||
-      relativeY < 0 ||
-      relativeY > actualHeight
-    ) {
-      return;
-    }
-
-    // Calculate the coordinates in the video's coordinate space
-    const x = (relativeX / actualWidth) * videoWidth;
-    const y = (relativeY / actualHeight) * videoHeight;
-
-    let action: number;
-    if ('touches' in event) {
-      // For touch events
-      switch (event.type) {
-        case 'touchstart':
-          action = AMOTION_EVENT.ACTION_DOWN;
-          break;
-        case 'touchend':
-          action = AMOTION_EVENT.ACTION_UP;
-          break;
-        case 'touchmove':
-          action = AMOTION_EVENT.ACTION_MOVE;
-          break;
-        case 'touchcancel':
-          action = AMOTION_EVENT.ACTION_CANCEL;
-          break;
-        default:
-          return;
+      // --- Start: Coordinate Calculation --- 
+      const displayWidth = rect.width;
+      const displayHeight = rect.height;
+      const videoAspectRatio = videoWidth / videoHeight;
+      const containerAspectRatio = displayWidth / displayHeight;
+      let actualWidth = displayWidth;
+      let actualHeight = displayHeight;
+      if (videoAspectRatio > containerAspectRatio) {
+        actualHeight = displayWidth / videoAspectRatio;
+      } else {
+        actualWidth = displayHeight * videoAspectRatio;
       }
-    } else {
-      // For mouse events
+      const offsetX = (displayWidth - actualWidth) / 2;
+      const offsetY = (displayHeight - actualHeight) / 2;
+      const relativeX = clientX - rect.left - offsetX;
+      const relativeY = clientY - rect.top - offsetY;
+      const isInside = relativeX >= 0 && relativeX <= actualWidth && relativeY >= 0 && relativeY <= actualHeight;
+      
+      let videoX = 0;
+      let videoY = 0;
+      if (isInside) {
+        videoX = Math.max(0, Math.min(videoWidth, (relativeX / actualWidth) * videoWidth));
+        videoY = Math.max(0, Math.min(videoHeight, (relativeY / actualHeight) * videoHeight));
+      }
+      // --- End: Coordinate Calculation ---
+
+      let action: number | null = null;
+      let positionToSend: { x: number; y: number } | null = null;
+      let pressure = 1.0; // Default pressure
+      const buttons = AMOTION_EVENT.BUTTON_PRIMARY; // Assume primary button
+
+      switch (eventType) {
+        case 'down':
+          if (isInside) {
+            action = AMOTION_EVENT.ACTION_DOWN;
+            positionToSend = { x: videoX, y: videoY };
+            activePointers.current.set(pointerId, positionToSend);
+            if (pointerId === -1) { // Focus on mouse down
+              videoRef.current?.focus();
+            }
+          } else {
+            // If the initial down event is outside, ignore it for this pointer
+            activePointers.current.delete(pointerId);
+          }
+          break;
+
+        case 'move':
+          if (activePointers.current.has(pointerId)) {
+            if (isInside) {
+              action = AMOTION_EVENT.ACTION_MOVE;
+              positionToSend = { x: videoX, y: videoY };
+              // Update the last known position for this active pointer
+              activePointers.current.set(pointerId, positionToSend);
+            } else {
+              // Moved outside while active - do nothing, UP/CANCEL will use last known pos
+            }
+          }
+          break;
+
+        case 'up':
+        case 'cancel': // Treat cancel like up, but use ACTION_CANCEL
+          if (activePointers.current.has(pointerId)) {
+            action = (eventType === 'cancel' ? AMOTION_EVENT.ACTION_CANCEL : AMOTION_EVENT.ACTION_UP);
+            // IMPORTANT: Send the UP/CANCEL at the *last known position* inside the video
+            positionToSend = activePointers.current.get(pointerId)!;
+            activePointers.current.delete(pointerId); // Remove pointer as it's no longer active
+          }
+          break;
+      }
+
+      // Send message if action and position determined
+      if (action !== null && positionToSend !== null) {
+        const message = createTouchControlMessage(
+          action,
+          pointerId,
+          positionToSend.x,
+          positionToSend.y,
+          pressure,
+          buttons,
+          buttons
+        );
+        if (message) {
+          sendBinaryControlMessage(message);
+        }
+      } else if (eventType === 'up' || eventType === 'cancel') {
+         // Clean up map just in case if 'down' was outside and 'up'/'cancel' is triggered
+         activePointers.current.delete(pointerId);
+      }
+    };
+
+    // --- Event Type Handling --- 
+
+    if ('touches' in event) { // Touch Events
+      const touches = event.changedTouches; // Use changedTouches for start/end/cancel
+      let eventType: 'down' | 'move' | 'up' | 'cancel';
+
+      switch (event.type) {
+        case 'touchstart': eventType = 'down'; break;
+        case 'touchmove': eventType = 'move'; break;
+        case 'touchend': eventType = 'up'; break;
+        case 'touchcancel': eventType = 'cancel'; break;
+        default: return; // Should not happen
+      }
+
+      for (let i = 0; i < touches.length; i++) {
+        const touch = touches[i];
+        processPointer(touch.identifier, touch.clientX, touch.clientY, eventType);
+      }
+
+    } else { // Mouse Events
+      const pointerId = -1; // Use -1 for mouse pointer
+      let eventType: 'down' | 'move' | 'up' | 'cancel' | null = null;
+
       switch (event.type) {
         case 'mousedown':
-          action = AMOTION_EVENT.ACTION_DOWN;
-          break;
-        case 'mouseup':
-          action = AMOTION_EVENT.ACTION_UP;
+          if (event.button === 0) eventType = 'down'; // Only primary button
           break;
         case 'mousemove':
-          action = AMOTION_EVENT.ACTION_MOVE;
+          // Only process move if primary button is down (check map)
+          if (activePointers.current.has(pointerId)) {
+             eventType = 'move';
+          }
           break;
-        default:
-          return;
+        case 'mouseup':
+          if (event.button === 0) eventType = 'up'; // Only primary button
+          break;
+        case 'mouseleave':
+           // Treat leave like up only if button was down
+           if (activePointers.current.has(pointerId)) {
+              eventType = 'up'; 
+           } 
+          break;
       }
-    }
-
-    const message = createTouchControlMessage(
-      action,
-      -1,
-      x,
-      y,
-      'touches' in event ? 1.0 : 1.0, // Use normal pressure for both touch and mouse
-      AMOTION_EVENT.BUTTON_PRIMARY,
-      AMOTION_EVENT.BUTTON_PRIMARY
-    );
-
-    if (message) {
-      sendBinaryControlMessage(message);
+      
+      if (eventType) {
+        processPointer(pointerId, event.clientX, event.clientY, eventType);
+      }
     }
   };
 
   const handleKeyboard = (event: React.KeyboardEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    console.log('Keyboard event:', {
+    // Use the wrapper for conditional logging
+    debugLog('Keyboard event:', {
       type: event.type,
       key: event.key,
       keyCode: event.keyCode,
@@ -620,12 +683,14 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
     });
 
     if (document.activeElement !== videoRef.current) {
-      console.warn('Video element not focused, skipping keyboard event');
+      // Use the wrapper for conditional warning
+      debugWarn('Video element not focused, skipping keyboard event');
       return;
     }
 
     if (!dataChannelRef.current || dataChannelRef.current.readyState !== 'open') {
-      console.warn('Data channel not ready for keyboard event:', dataChannelRef.current?.readyState);
+      // Use the wrapper for conditional warning
+      debugWarn('Data channel not ready for keyboard event:', dataChannelRef.current?.readyState);
       return;
     }
 
@@ -633,10 +698,10 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
     if (event.type === 'keydown') {
       // Paste (Cmd+V / Ctrl+V)
       if (event.key.toLowerCase() === 'v' && (event.metaKey || event.ctrlKey)) {
-        console.log('Paste shortcut detected');
+        debugLog('Paste shortcut detected');
         navigator.clipboard.readText().then(text => {
           if (text) {
-            console.log('Pasting text via SET_CLIPBOARD:', text.substring(0, 20) + (text.length > 20 ? '...' : ''));
+            debugLog('Pasting text via SET_CLIPBOARD:', text.substring(0, 20) + (text.length > 20 ? '...' : ''));
             const message = createSetClipboardMessage(text, true); // paste=true
             sendBinaryControlMessage(message);
           }
@@ -648,7 +713,7 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
       
       // Menu (Cmd+M / Ctrl+M) - Send down and up immediately
       if (event.key.toLowerCase() === 'm' && (event.metaKey || event.ctrlKey)) {
-        console.log('Menu shortcut detected');
+        debugLog('Menu shortcut detected');
         const messageDown = createInjectKeycodeMessage(
           ANDROID_KEYS.ACTION_DOWN,
           ANDROID_KEYS.MENU,
@@ -674,7 +739,7 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
       const { keycode, metaState } = keyInfo;
       const action = event.type === 'keydown' ? ANDROID_KEYS.ACTION_DOWN : ANDROID_KEYS.ACTION_UP;
       
-      console.log(`Sending Keycode: key=${event.key}, code=${keycode}, action=${action}, meta=${metaState}`);
+      debugLog(`Sending Keycode: key=${event.key}, code=${keycode}, action=${action}, meta=${metaState}`);
 
       const message = createInjectKeycodeMessage(
         action,
@@ -684,7 +749,7 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
       );
       sendBinaryControlMessage(message);
     } else {
-       console.log(`Ignoring unhandled key event: type=${event.type}, key=${event.key}`);
+       debugLog(`Ignoring unhandled key event: type=${event.type}, key=${event.key}`);
     }
   };
 
@@ -784,8 +849,9 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
         
         try {
           videoTransceiver.setCodecPreferences(sortedCodecs);
-          console.log('Codec preferences set:', sortedCodecs);
+          debugLog('Codec preferences set:', sortedCodecs);
         } catch (e) {
+          // Keep this as console.warn as it's a potentially important issue even when not debugging
           console.warn('Failed to set codec preferences:', e);
         }
       }
@@ -849,7 +915,7 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
       peerConnectionRef.current.ontrack = (event) => {
         updateStatus('Received remote track: ' + event.track.kind);
         if (event.track.kind === 'video' && videoRef.current) {
-          console.log(`[${new Date().toISOString()}] Video track received:`, event.track);
+          debugLog(`[${new Date().toISOString()}] Video track received:`, event.track);
           videoRef.current.srcObject = event.streams[0];
         }
       };
@@ -971,28 +1037,31 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
   return (
     <div 
       className={twMerge(clsx("relative flex h-full items-center justify-center bg-muted/90", className))}
-      onTouchStart={handleMouse}
-      onTouchMove={handleMouse}
-      onTouchEnd={handleMouse}
-      onTouchCancel={handleMouse}
-      style={{ touchAction: 'none' }}
+      style={{ touchAction: 'none' }} // Keep touchAction none for the container
+      // Attach unified handler to all interaction events on the container
+      // This helps capture mouseleave correctly even if the video element itself isn't hovered
+      onMouseDown={handleInteraction} 
+      onMouseMove={handleInteraction}
+      onMouseUp={handleInteraction}
+      onMouseLeave={handleInteraction} // Handle mouse leaving the container
+      onTouchStart={handleInteraction}
+      onTouchMove={handleInteraction}
+      onTouchEnd={handleInteraction}
+      onTouchCancel={handleInteraction}
     >
       <video
         ref={videoRef}
-        className="max-h-full h-full max-w-full object-contain"
+        className="max-h-full h-full max-w-full object-contain cursor-none"
         autoPlay
         playsInline
-        tabIndex={0}
-        style={{outline: 'none', touchAction: 'none'}}
-        onMouseDown={handleMouse}
-        onMouseMove={handleMouse}
-        onMouseUp={handleMouse}
+        tabIndex={0} // Make it focusable
+        style={{outline: 'none', pointerEvents: 'none'}}
         onKeyDown={handleKeyboard}
         onKeyUp={handleKeyboard}
         onClick={handleVideoClick}
         onFocus={() => {
           if (videoRef.current) {
-            videoRef.current.style.outline = '2px solid blue';
+            videoRef.current.style.outline = 'none';
           }
         }}
         onBlur={() => {

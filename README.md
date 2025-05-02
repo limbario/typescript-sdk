@@ -107,6 +107,12 @@ npm install
 npm run dev
 ```
 
+You can run the following in Chrome console to enable debug logging:
+
+```js
+window.debugRemoteControl = true 
+```
+
 ### Releasing
 
 To release a new version, follow these steps:
