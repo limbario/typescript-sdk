@@ -1,0 +1,305 @@
+openapi: "3.0.0"
+info:
+  version: 0.1.0
+  title: Limbar Region API
+paths:
+  /apis/android.limbar.io/v1alpha1/organizations/{organizationId}/instances:
+    get:
+      summary: Get Android instances in the region
+      operationId: listAndroidInstances
+      parameters:
+        - name: organizationId
+          description: Organization ID the Android instances belong to.
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: state
+          description: State filter to apply to Android instances to return.
+          required: false
+          in: query
+          schema:
+            $ref: "#/components/schemas/AndroidInstanceState"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AndroidInstance"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+    put:
+      summary: Create an Android instance
+      operationId: putAndroidInstance
+      parameters:
+        - name: organizationId
+          description: Organization ID the Android instances belong to.
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                instance:
+                  $ref: "#/components/schemas/AndroidInstance"
+                wait:
+                  type: boolean
+                  description: Return only after the instance is ready to connect.
+              required:
+                - instance
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AndroidInstanceWithToken"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+        '500':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+  /apis/android.limbar.io/v1alpha1/organizations/{organizationId}/instances/{instanceName}:
+    get:
+      summary: Get Android instance with given name
+      operationId: getAndroidInstance
+      parameters:
+        - name: organizationId
+          description: Organization ID the Android instances belong to.
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: instanceName
+          description: Android instance name
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AndroidInstance"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+        '404':
+          description: Not found
+        '500':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+    delete:
+        summary: Delete Android instance with given name
+        operationId: deleteAndroidInstance
+        parameters:
+          - name: organizationId
+            description: Organization ID the Android instances belong to.
+            required: true
+            in: path
+            schema:
+              type: string
+          - name: instanceName
+            description: Android instance name
+            required: true
+            in: path
+            schema:
+                type: string
+        responses:
+          '200':
+            description: OK
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Status"
+          '400':
+            description: Bad request
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Status"
+          '403':
+            description: Forbidden
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Status"
+          '404':
+            description: NotFound
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Status"
+          '500':
+            description: Internal server error
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Status"
+
+  /livez:
+    get:
+      summary: Check if the server is alive
+      operationId: checkAlive
+      responses:
+        '200':
+          description: OK
+  /readyz:
+    get:
+      summary: Check if the server is ready
+      operationId: checkReady
+      responses:
+        '200':
+          description: OK
+components:
+  schemas:
+    AndroidInstance:
+      type: object
+      properties:
+        metadata:
+          type: object
+          properties:
+            name:
+              type: string
+              maxLength: 63
+            organizationId:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+            terminatedAt:
+              type: string
+              format: date-time
+          required:
+            - name
+            - organizationId
+        spec:
+          type: object
+          properties:
+            os:
+              type: string
+              default: Android
+            selector:
+              type: object
+              additionalProperties:
+                type: string
+        status:
+          type: object
+          properties:
+            state:
+              $ref: "#/components/schemas/AndroidInstanceState"
+            connectionUrl:
+              type: string
+            webrtcUrl:
+              type: string
+          required:
+            - state
+      required:
+        - metadata
+    AndroidInstanceWithToken:
+      type: object
+      properties:
+        metadata:
+          type: object
+          properties:
+            name:
+              type: string
+              maxLength: 63
+            organizationId:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+            terminatedAt:
+              type: string
+              format: date-time
+          required:
+            - name
+            - organizationId
+        token:
+          type: string
+        status:
+          type: object
+          properties:
+            state:
+              $ref: "#/components/schemas/AndroidInstanceState"
+            connectionUrl:
+              type: string
+            webrtcUrl:
+              type: string
+          required:
+            - state
+      required:
+        - metadata
+        - token
+        - status
+
+    AndroidInstanceState:
+      type: string
+      # This enum is copied to DB schema as well.
+      enum:
+        - unknown
+        - creating
+        - ready
+        - terminated
+    Status:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+      required:
+        - status
+        - message

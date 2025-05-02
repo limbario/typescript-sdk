@@ -1,0 +1,43 @@
+{
+  "name": "@limbar/api",
+  "version": "0.1.0",
+  "private": false,
+  "description": "API client for Limbar services.",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint .",
+    "generate": "npx openapi-typescript@^7.0.0 openapi/region.yaml -o src/region/zz_schema.d.ts"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.13.5"
+  },
+  "keywords": [
+    "api",
+    "limbar"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/limbario/ui",
+    "directory": "packages/api"
+  },
+  "author": "Limbar",
+  "license": "MIT"
+}
