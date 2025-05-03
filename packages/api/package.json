@@ -1,6 +1,6 @@
 {
   "name": "@limbar/api",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "description": "TypeScript API clients for Limbar endpoints that let you control Android Emulators and iOS Simulators from the browser.",
   "type": "module",
