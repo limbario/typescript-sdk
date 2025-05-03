@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@limbar/ui": "0.2.3",
+    "@limbar/ui": "*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
