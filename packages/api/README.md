@@ -11,6 +11,11 @@ specifically region endpoints and main Limbar API with following features:
 
 See a full example with frontend and backend in [`examples/simple`](../../examples/simple).
 
+Add the dependency:
+```bash
+npm install @limbar/api
+```
+
 Here is an example API call made to `eu-north1` region using this client.
 
 ```ts

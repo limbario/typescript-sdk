@@ -46,8 +46,8 @@ export type AndroidInstanceWithToken = {
     token: string;
     status: {
         state: AndroidInstanceState;
-        connectionUrl?: string;
-        webrtcUrl?: string;
+        connectionUrl: string;
+        webrtcUrl: string;
     };
 };
 /**

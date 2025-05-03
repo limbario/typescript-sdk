@@ -280,6 +280,8 @@ components:
               type: string
           required:
             - state
+            - webrtcUrl
+            - connectionUrl
       required:
         - metadata
         - token

@@ -25,7 +25,7 @@ To release a new version, follow these steps:
 
 1. Bump the version in `package.json` of the respective package and run `npm install`.
 1. Push the changes to the repository.
-1. Create a new release on GitHub with the same name as the new version.
+1. Create a new release on GitHub with name and version, such as `api@v0.1.0`
 1. Run the following commands:
 
    ```bash
