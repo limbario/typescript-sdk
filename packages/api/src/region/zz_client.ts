@@ -32,8 +32,7 @@ export type AndroidInstance = {
         webrtcUrl?: string;
     };
 };
-export type Status = {
-    status: string;
+export type ApiError = {
     message: string;
 };
 export type AndroidInstanceWithToken = {
@@ -61,13 +60,13 @@ export function listAndroidInstances(organizationId: string, { state }: {
         data: AndroidInstance[];
     } | {
         status: 400;
-        data: Status;
+        data: ApiError;
     } | {
         status: 403;
-        data: Status;
+        data: ApiError;
     } | {
         status: 500;
-        data: Status;
+        data: ApiError;
     }>(`/apis/android.limbar.io/v1alpha1/organizations/${encodeURIComponent(organizationId)}/instances${QS.query(QS.explode({
         state
     }))}`, {
@@ -87,13 +86,13 @@ export function putAndroidInstance(organizationId: string, body: {
         data: AndroidInstanceWithToken;
     } | {
         status: 400;
-        data: Status;
+        data: ApiError;
     } | {
         status: 403;
-        data: Status;
+        data: ApiError;
     } | {
         status: 500;
-        data: Status;
+        data: ApiError;
     }>(`/apis/android.limbar.io/v1alpha1/organizations/${encodeURIComponent(organizationId)}/instances`, oazapfts.json({
         ...opts,
         method: "PUT",
@@ -109,15 +108,16 @@ export function getAndroidInstance(organizationId: string, instanceName: string,
         data: AndroidInstance;
     } | {
         status: 400;
-        data: Status;
+        data: ApiError;
     } | {
         status: 403;
-        data: Status;
+        data: ApiError;
     } | {
         status: 404;
+        data: ApiError;
     } | {
         status: 500;
-        data: Status;
+        data: ApiError;
     }>(`/apis/android.limbar.io/v1alpha1/organizations/${encodeURIComponent(organizationId)}/instances/${encodeURIComponent(instanceName)}`, {
         ...opts
     });
@@ -128,19 +128,19 @@ export function getAndroidInstance(organizationId: string, instanceName: string,
 export function deleteAndroidInstance(organizationId: string, instanceName: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.fetchJson<{
         status: 200;
-        data: Status;
+        data: ApiError;
     } | {
         status: 400;
-        data: Status;
+        data: ApiError;
     } | {
         status: 403;
-        data: Status;
+        data: ApiError;
     } | {
         status: 404;
-        data: Status;
+        data: ApiError;
     } | {
         status: 500;
-        data: Status;
+        data: ApiError;
     }>(`/apis/android.limbar.io/v1alpha1/organizations/${encodeURIComponent(organizationId)}/instances/${encodeURIComponent(instanceName)}`, {
         ...opts,
         method: "DELETE"

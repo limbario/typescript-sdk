@@ -34,19 +34,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Status"
+                $ref: "#/components/schemas/APIError"
         '400':
           description: Bad request
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Status"
+                $ref: "#/components/schemas/APIError"
         '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Status"
+                $ref: "#/components/schemas/APIError"
     put:
       summary: Create an Android instance
       operationId: putAndroidInstance
@@ -83,19 +83,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Status"
+                $ref: "#/components/schemas/APIError"
         '500':
           description: Bad request
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Status"
+                $ref: "#/components/schemas/APIError"
         '400':
           description: Bad request
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Status"
+                $ref: "#/components/schemas/APIError"
   /apis/android.limbar.io/v1alpha1/organizations/{organizationId}/instances/{instanceName}:
     get:
       summary: Get Android instance with given name
@@ -125,21 +125,25 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Status"
+                $ref: "#/components/schemas/APIError"
         '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Status"
+                $ref: "#/components/schemas/APIError"
         '404':
           description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIError"
         '500':
           description: Bad request
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Status"
+                $ref: "#/components/schemas/APIError"
     delete:
         summary: Delete Android instance with given name
         operationId: deleteAndroidInstance
@@ -162,31 +166,31 @@ paths:
             content:
               application/json:
                 schema:
-                  $ref: "#/components/schemas/Status"
+                  $ref: "#/components/schemas/APIError"
           '400':
             description: Bad request
             content:
               application/json:
                 schema:
-                  $ref: "#/components/schemas/Status"
+                  $ref: "#/components/schemas/APIError"
           '403':
             description: Forbidden
             content:
               application/json:
                 schema:
-                  $ref: "#/components/schemas/Status"
+                  $ref: "#/components/schemas/APIError"
           '404':
             description: NotFound
             content:
               application/json:
                 schema:
-                  $ref: "#/components/schemas/Status"
+                  $ref: "#/components/schemas/APIError"
           '500':
             description: Internal server error
             content:
               application/json:
                 schema:
-                  $ref: "#/components/schemas/Status"
+                  $ref: "#/components/schemas/APIError"
 
   /livez:
     get:
@@ -295,13 +299,10 @@ components:
         - creating
         - ready
         - terminated
-    Status:
+    APIError:
       type: object
       properties:
-        status:
-          type: string
         message:
           type: string
       required:
-        - status
         - message
