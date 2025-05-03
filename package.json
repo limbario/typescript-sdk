@@ -1,7 +1,7 @@
 {
   "name": "limbar-monorepo",
   "private": true,
-  "description": "SDK and UI components for Limbar",
+  "description": "Limbar TypeScript SDK that contains API client and UI components.",
   "workspaces": [
     "packages/*",
     "examples/simple/*"
