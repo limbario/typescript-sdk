@@ -16,11 +16,6 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
-    "./region": {
-      "types": "./dist/region/index.d.ts",
-      "import": "./dist/region/index.js",
-      "require": "./dist/region/index.cjs"
-    },
     "./package.json": "./package.json"
   },
   "publishConfig": {

@@ -7,7 +7,7 @@ export type * from "./zz_client.js";
 /**
  * Configuration options for creating a Region API client instance.
  */
-export interface RegionApiClientOptions {
+export interface RegionClientOptions {
   baseUrl: string;
   token: string;
 }
@@ -18,7 +18,7 @@ type ExcludeOpts<T extends (...args: any) => any> =
 
 // Helper type: Defines the structure of the client instance returned by the factory.
 // It maps the generated *functions* to methods with the same parameters (minus 'opts').
-export type RegionApiClient = {
+export type RegionClient = {
   // Iterate over keys of the generated module
   [K in keyof typeof Generated as
     // Only include keys whose values are functions
@@ -36,21 +36,21 @@ export type RegionApiClient = {
  * @param options Configuration for this client instance (baseUrl, headers, etc.).
  * @returns An object containing methods to interact with the Region API.
  */
-export function createRegionApiClient(options: RegionApiClientOptions): RegionApiClient {
+export function createRegionClient(options: RegionClientOptions): RegionClient {
   const baseOpts: Oazapfts.RequestOpts = {
     baseUrl: options.baseUrl,
     headers: {
       Authorization: `Bearer ${options.token}`,
     },
   };
-  const client: Partial<RegionApiClient> = {};
+  const client: Partial<RegionClient> = {};
 
   // Iterate over keys and check if the value is a function before creating the wrapper
   for (const key in Generated) {
     const potentialFunc = Generated[key as keyof typeof Generated];
     if (typeof potentialFunc === 'function') {
       // Now we know it's a function, proceed with wrapping
-      const funcName = key as keyof RegionApiClient;
+      const funcName = key as keyof RegionClient;
       const originalFunc = potentialFunc as (...args: any[]) => any;
 
       client[funcName] = (...args: any[]) => {
@@ -62,5 +62,5 @@ export function createRegionApiClient(options: RegionApiClientOptions): RegionAp
     }
   }
 
-  return client as RegionApiClient;
+  return client as RegionClient;
 }

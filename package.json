@@ -3,13 +3,14 @@
   "private": true,
   "description": "SDK and UI components for Limbar",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "examples/simple/*"
   ],
   "scripts": {
-    "build": "npm run generate -w @limbar/api && npm run build -ws --if-present",
+    "build": "npm run generate -ws --if-present && npm run build -ws --if-present",
     "lint": "npm run lint -ws --if-present",
     "dev": "npm run dev -w @limbar/ui",
-    "generate": "npm run generate -w @limbar/api"
+    "generate": "npm run generate -ws --if-present"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
