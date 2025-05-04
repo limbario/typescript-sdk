@@ -35,6 +35,17 @@ export type AndroidInstance = {
 export type ApiError = {
     message: string;
 };
+export type AndroidInstanceCreate = {
+    metadata: {
+        name: string;
+    };
+    spec?: {
+        os?: string;
+        selector?: {
+            [key: string]: string;
+        };
+    };
+};
 export type AndroidInstanceWithToken = {
     metadata: {
         name: string;
@@ -77,7 +88,7 @@ export function listAndroidInstances(organizationId: string, { state }: {
  * Create an Android instance
  */
 export function putAndroidInstance(organizationId: string, body: {
-    instance: AndroidInstance;
+    instance: AndroidInstanceCreate;
     /** Return only after the instance is ready to connect. */
     wait?: boolean;
 }, opts?: Oazapfts.RequestOpts) {

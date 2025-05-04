@@ -65,7 +65,7 @@ paths:
               type: object
               properties:
                 instance:
-                  $ref: "#/components/schemas/AndroidInstance"
+                  $ref: "#/components/schemas/AndroidInstanceCreate"
                 wait:
                   type: boolean
                   description: Return only after the instance is ready to connect.
@@ -249,6 +249,29 @@ components:
               type: string
           required:
             - state
+      required:
+        - metadata
+    AndroidInstanceCreate:
+      type: object
+      properties:
+        metadata:
+          type: object
+          properties:
+            name:
+              type: string
+              maxLength: 63
+          required:
+            - name
+        spec:
+          type: object
+          properties:
+            os:
+              type: string
+              default: Android
+            selector:
+              type: object
+              additionalProperties:
+                type: string
       required:
         - metadata
     AndroidInstanceWithToken:
