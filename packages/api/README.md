@@ -39,10 +39,7 @@ const regionClient = createRegionClient({
 const name = `api-example-${Math.random().toString(36).substring(2, 9)}`;
 const result = await regionClient.putAndroidInstance(organizationId, {
   instance: {
-    metadata: {
-      name,
-      organizationId,
-    }
+    metadata: { name }
   },
   wait: true
 });
@@ -55,5 +52,5 @@ console.log({
     name,
     webrtcUrl: result.data.status.webrtcUrl,
     token: result.data.token,
-}, "Success! You can deliver token and webrtcUrl to your frontend!")
+}, "Success! You can deliver the token and webrtcUrl to RemoteControl component from @limbar/ui in your frontend!");
 ```
