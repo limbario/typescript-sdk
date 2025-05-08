@@ -32,8 +32,18 @@ interface RemoteControlProps {
   openUrl?: string;
 }
 
+export interface ImperativeKeyboardEvent {
+  type: 'keydown' | 'keyup';
+  code: string; // e.g., "KeyA", "Enter", "ShiftLeft"
+  shiftKey?: boolean;
+  altKey?: boolean;
+  ctrlKey?: boolean;
+  metaKey?: boolean;
+}
+
 export interface RemoteControlHandle {
   openUrl: (url: string) => void;
+  sendKeyEvent: (event: ImperativeKeyboardEvent) => void;
 }
 
 const CONTROL_MSG_TYPE = {
@@ -1047,8 +1057,8 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
   // Expose sendOpenUrlCommand via ref
   useImperativeHandle(ref, () => ({
     openUrl: (newUrl: string) => {
-      if (!wsRef.current) {
-        console.error('WebSocket not open, cannot send open_url command via ref.');
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        debugWarn('WebSocket not open, cannot send open_url command via ref.');
         return;
       }
       try {
@@ -1060,12 +1070,45 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
           sessionId: sessionId
         }));
       } catch (error) {
-        console.error({error}, 'Error decoding URL, falling back to the original URL');
+        debugWarn('Error decoding or sending URL via ref:', {error, url: newUrl});
         wsRef.current.send(JSON.stringify({
           type: 'openUrl',
           url: newUrl,
           sessionId: sessionId
         }));
+      }
+    },
+    
+    sendKeyEvent: (event: ImperativeKeyboardEvent) => {
+      if (!dataChannelRef.current || dataChannelRef.current.readyState !== 'open') {
+        debugWarn('Data channel not ready for imperative key command:', dataChannelRef.current?.readyState);
+        return;
+      }
+
+      const keycode = codeMap[event.code];
+      if (!keycode) {
+        debugWarn(`Unknown event.code for imperative command: ${event.code}`);
+        return;
+      }
+
+      let metaState = ANDROID_KEYS.META_NONE;
+      if (event.shiftKey) metaState |= ANDROID_KEYS.META_SHIFT_ON;
+      if (event.altKey) metaState |= ANDROID_KEYS.META_ALT_ON;
+      if (event.ctrlKey) metaState |= ANDROID_KEYS.META_CTRL_ON;
+      if (event.metaKey) metaState |= ANDROID_KEYS.META_META_ON;
+
+      const action = event.type === 'keydown' ? ANDROID_KEYS.ACTION_DOWN : ANDROID_KEYS.ACTION_UP;
+      
+      debugLog(`Sending Imperative Key Command: code=${event.code}, keycode=${keycode}, action=${action}, meta=${metaState}`);
+
+      const message = createInjectKeycodeMessage(
+        action,
+        keycode,
+        0, // repeat count, typically 0 for single presses
+        metaState
+      );
+      if (message) {
+        sendBinaryControlMessage(message);
       }
     }
   }));

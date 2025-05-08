@@ -13,6 +13,7 @@ function InstanceLoader() {
   const [apiToken, setApiToken] = useState<string>("");
   const remoteControlRef = useRef<RemoteControlHandle>(null);
   const [urlToOpen, setUrlToOpen] = useState<string>("https://www.limbar.io");
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   
   const [instanceData, setInstanceData] = useState<InstanceData | null>(null);
   const [appState, setAppState] = useState<'idle' | 'creating' | 'running' | 'stopping' | 'error'>('idle');
@@ -239,6 +240,34 @@ function InstanceLoader() {
             disabled={!urlToOpen}
           >
             Open URL in Instance
+          </button>
+        </div>
+      )}
+
+      {/* UI for sending RR (Refresh) command */}
+      {appState === 'running' && instanceData && (
+        <div className="w-full flex flex-col md:flex-row gap-4 p-4 border rounded-lg bg-white shadow-sm items-end justify-center">
+          <button
+            onClick={async () => {
+              if (remoteControlRef.current && !isRefreshing) {
+                setIsRefreshing(true);
+                const rParams = { code: 'KeyR', shiftKey: true }; // Uppercase R
+                if (remoteControlRef.current) {
+                  remoteControlRef.current.sendKeyEvent({ type: 'keydown', ...rParams });
+                  await new Promise(r => setTimeout(r, 50)); 
+                  remoteControlRef.current.sendKeyEvent({ type: 'keyup', ...rParams });
+                  await new Promise(r => setTimeout(r, 70)); 
+                  remoteControlRef.current.sendKeyEvent({ type: 'keydown', ...rParams });
+                  await new Promise(r => setTimeout(r, 50)); 
+                  remoteControlRef.current.sendKeyEvent({ type: 'keyup', ...rParams });
+                }
+                setIsRefreshing(false);
+              }
+            }}
+            className="px-5 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 transition-colors text-lg shadow disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? 'Sending RR...' : 'Refresh (Send RR)'}
           </button>
         </div>
       )}
