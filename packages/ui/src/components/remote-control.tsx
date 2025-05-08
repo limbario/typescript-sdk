@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react'
+import React, { useEffect, useRef, useState, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -30,6 +30,10 @@ interface RemoteControlProps {
   //
   // If not provided, the component will not open any URL.
   openUrl?: string;
+}
+
+export interface RemoteControlHandle {
+  openUrl: (url: string) => void;
 }
 
 const CONTROL_MSG_TYPE = {
@@ -377,7 +381,13 @@ function getAndroidKeycodeAndMeta(event: React.KeyboardEvent): { keycode: number
   return { keycode, metaState };
 }
 
-export function RemoteControl({ className, url, token, sessionId: propSessionId, openUrl }: RemoteControlProps) {
+export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>(({ 
+  className, 
+  url, 
+  token, 
+  sessionId: propSessionId, 
+  openUrl 
+}: RemoteControlProps, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
@@ -1034,6 +1044,32 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
     }
   };
 
+  // Expose sendOpenUrlCommand via ref
+  useImperativeHandle(ref, () => ({
+    openUrl: (newUrl: string) => {
+      if (!wsRef.current) {
+        console.error('WebSocket not open, cannot send open_url command via ref.');
+        return;
+      }
+      try {
+        const decodedUrl = decodeURIComponent(newUrl);
+        updateStatus('Opening URL');
+        wsRef.current.send(JSON.stringify({
+          type: 'openUrl',
+          url: decodedUrl,
+          sessionId: sessionId
+        }));
+      } catch (error) {
+        console.error({error}, 'Error decoding URL, falling back to the original URL');
+        wsRef.current.send(JSON.stringify({
+          type: 'openUrl',
+          url: newUrl,
+          sessionId: sessionId
+        }));
+      }
+    }
+  }));
+
   return (
     <div 
       className={twMerge(clsx("relative flex h-full items-center justify-center bg-muted/90", className))}
@@ -1080,4 +1116,4 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
       )}
     </div>
   );
-}
+});
