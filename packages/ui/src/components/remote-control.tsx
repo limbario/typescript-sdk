@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react'
+import React, { useEffect, useRef, useState, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -30,6 +30,20 @@ interface RemoteControlProps {
   //
   // If not provided, the component will not open any URL.
   openUrl?: string;
+}
+
+export interface ImperativeKeyboardEvent {
+  type: 'keydown' | 'keyup';
+  code: string; // e.g., "KeyA", "Enter", "ShiftLeft"
+  shiftKey?: boolean;
+  altKey?: boolean;
+  ctrlKey?: boolean;
+  metaKey?: boolean;
+}
+
+export interface RemoteControlHandle {
+  openUrl: (url: string) => void;
+  sendKeyEvent: (event: ImperativeKeyboardEvent) => void;
 }
 
 const CONTROL_MSG_TYPE = {
@@ -377,7 +391,13 @@ function getAndroidKeycodeAndMeta(event: React.KeyboardEvent): { keycode: number
   return { keycode, metaState };
 }
 
-export function RemoteControl({ className, url, token, sessionId: propSessionId, openUrl }: RemoteControlProps) {
+export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>(({ 
+  className, 
+  url, 
+  token, 
+  sessionId: propSessionId, 
+  openUrl 
+}: RemoteControlProps, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
@@ -1034,6 +1054,65 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
     }
   };
 
+  // Expose sendOpenUrlCommand via ref
+  useImperativeHandle(ref, () => ({
+    openUrl: (newUrl: string) => {
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        debugWarn('WebSocket not open, cannot send open_url command via ref.');
+        return;
+      }
+      try {
+        const decodedUrl = decodeURIComponent(newUrl);
+        updateStatus('Opening URL');
+        wsRef.current.send(JSON.stringify({
+          type: 'openUrl',
+          url: decodedUrl,
+          sessionId: sessionId
+        }));
+      } catch (error) {
+        debugWarn('Error decoding or sending URL via ref:', {error, url: newUrl});
+        wsRef.current.send(JSON.stringify({
+          type: 'openUrl',
+          url: newUrl,
+          sessionId: sessionId
+        }));
+      }
+    },
+    
+    sendKeyEvent: (event: ImperativeKeyboardEvent) => {
+      if (!dataChannelRef.current || dataChannelRef.current.readyState !== 'open') {
+        debugWarn('Data channel not ready for imperative key command:', dataChannelRef.current?.readyState);
+        return;
+      }
+
+      const keycode = codeMap[event.code];
+      if (!keycode) {
+        debugWarn(`Unknown event.code for imperative command: ${event.code}`);
+        return;
+      }
+
+      let metaState = ANDROID_KEYS.META_NONE;
+      if (event.shiftKey) metaState |= ANDROID_KEYS.META_SHIFT_ON;
+      if (event.altKey) metaState |= ANDROID_KEYS.META_ALT_ON;
+      if (event.ctrlKey) metaState |= ANDROID_KEYS.META_CTRL_ON;
+      if (event.metaKey) metaState |= ANDROID_KEYS.META_META_ON;
+
+      const action = event.type === 'keydown' ? ANDROID_KEYS.ACTION_DOWN : ANDROID_KEYS.ACTION_UP;
+      
+      debugLog(`Sending Imperative Key Command: code=${event.code}, keycode=${keycode}, action=${action}, meta=${metaState}`);
+
+      const message = createInjectKeycodeMessage(
+        action,
+        keycode,
+        0, // repeat count, typically 0 for single presses
+        metaState
+      );
+      if (message) {
+        sendBinaryControlMessage(message);
+      }
+    }
+  }));
+
   return (
     <div 
       className={twMerge(clsx("relative flex h-full items-center justify-center bg-muted/90", className))}
@@ -1080,4 +1159,4 @@ export function RemoteControl({ className, url, token, sessionId: propSessionId,
       )}
     </div>
   );
-}
+});

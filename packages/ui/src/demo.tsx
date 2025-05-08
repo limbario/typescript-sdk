@@ -1,6 +1,6 @@
-import { StrictMode, useState, useCallback } from 'react'
+import { StrictMode, useState, useCallback, useRef } from 'react'
 import { createRoot } from 'react-dom/client'
-import { RemoteControl } from './components/remote-control'
+import { RemoteControl, RemoteControlHandle } from './components/remote-control'
 
 interface InstanceData {
   webrtcUrl: string;
@@ -11,6 +11,9 @@ interface InstanceData {
 function InstanceLoader() {
   const [organizationId, setOrganizationId] = useState<string>("");
   const [apiToken, setApiToken] = useState<string>("");
+  const remoteControlRef = useRef<RemoteControlHandle>(null);
+  const [urlToOpen, setUrlToOpen] = useState<string>("https://www.limbar.io");
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   
   const [instanceData, setInstanceData] = useState<InstanceData | null>(null);
   const [appState, setAppState] = useState<'idle' | 'creating' | 'running' | 'stopping' | 'error'>('idle');
@@ -136,7 +139,7 @@ function InstanceLoader() {
     case 'stopping':
       mainContent = (
         <div className={`relative h-[80vh] w-full overflow-hidden rounded-lg bg-muted/90 shadow-lg ${appState === 'stopping' ? 'opacity-50' : ''}`}>
-          {instanceData && <RemoteControl url={instanceData.webrtcUrl} token={instanceData.token} />} 
+          {instanceData && <RemoteControl ref={remoteControlRef} url={instanceData.webrtcUrl} token={instanceData.token} />}
         </div>
       );
       break;
@@ -212,6 +215,62 @@ function InstanceLoader() {
           </button>
         )}
       </div>
+
+      {/* UI for sending open URL command */}
+      {appState === 'running' && instanceData && (
+        <div className="w-full flex flex-col md:flex-row gap-4 p-4 border rounded-lg bg-white shadow-sm items-end">
+          <div className="flex-grow">
+            <label htmlFor="urlToOpen" className="block text-sm font-medium text-gray-700 mb-1">URL to Open</label>
+            <input
+              type="text"
+              id="urlToOpen"
+              value={urlToOpen}
+              onChange={(e) => setUrlToOpen(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              placeholder="e.g., https://www.example.com"
+            />
+          </div>
+          <button
+            onClick={() => {
+              if (remoteControlRef.current && urlToOpen) {
+                remoteControlRef.current.openUrl(urlToOpen);
+              }
+            }}
+            className="px-5 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-lg shadow disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled={!urlToOpen}
+          >
+            Open URL in Instance
+          </button>
+        </div>
+      )}
+
+      {/* UI for sending RR (Refresh) command */}
+      {appState === 'running' && instanceData && (
+        <div className="w-full flex flex-col md:flex-row gap-4 p-4 border rounded-lg bg-white shadow-sm items-end justify-center">
+          <button
+            onClick={async () => {
+              if (remoteControlRef.current && !isRefreshing) {
+                setIsRefreshing(true);
+                const rParams = { code: 'KeyR', shiftKey: true }; // Uppercase R
+                if (remoteControlRef.current) {
+                  remoteControlRef.current.sendKeyEvent({ type: 'keydown', ...rParams });
+                  await new Promise(r => setTimeout(r, 50)); 
+                  remoteControlRef.current.sendKeyEvent({ type: 'keyup', ...rParams });
+                  await new Promise(r => setTimeout(r, 70)); 
+                  remoteControlRef.current.sendKeyEvent({ type: 'keydown', ...rParams });
+                  await new Promise(r => setTimeout(r, 50)); 
+                  remoteControlRef.current.sendKeyEvent({ type: 'keyup', ...rParams });
+                }
+                setIsRefreshing(false);
+              }
+            }}
+            className="px-5 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 transition-colors text-lg shadow disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? 'Sending RR...' : 'Refresh (Send RR)'}
+          </button>
+        </div>
+      )}
 
       {/* Main Content Area (Loading / Error / RemoteControl) */}
       <div className="w-full flex-grow flex justify-center items-center">
