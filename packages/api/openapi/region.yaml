@@ -191,7 +191,59 @@ paths:
               application/json:
                 schema:
                   $ref: "#/components/schemas/APIError"
-
+  /apis/android.limbar.io/v1alpha1/organizations/{organizationId}/instances/{instanceName}/tokens:
+    post:
+      summary: Create an instance token
+      operationId: createInstanceToken
+      parameters:
+        - name: organizationId
+          description: Organization ID
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: instanceName
+          description: Instance Name
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InstanceTokenCreate"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenWithValue"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIError"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIError"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIError"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIError"
   /livez:
     get:
       summary: Check if the server is alive
@@ -313,7 +365,6 @@ components:
         - metadata
         - token
         - status
-
     AndroidInstanceState:
       type: string
       # This enum is copied to DB schema as well.
@@ -329,3 +380,31 @@ components:
           type: string
       required:
         - message
+    InstanceTokenCreate:
+      type: object
+      properties:
+        expirationMonths:
+          type: integer
+    TokenWithValue:
+      type: object
+      properties:
+        id:
+          type: string
+        description:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        revokedAt:
+          type: string
+          format: date-time
+        token:
+          type: string
+      required:
+        - id
+        - expiresAt
+        - createdAt
+        - token

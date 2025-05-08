@@ -60,6 +60,17 @@ export type AndroidInstanceWithToken = {
         webrtcUrl: string;
     };
 };
+export type InstanceTokenCreate = {
+    expirationMonths?: number;
+};
+export type TokenWithValue = {
+    id: string;
+    description?: string;
+    expiresAt: string;
+    createdAt: string;
+    revokedAt?: string;
+    token: string;
+};
 /**
  * Get Android instances in the region
  */
@@ -156,6 +167,31 @@ export function deleteAndroidInstance(organizationId: string, instanceName: stri
         ...opts,
         method: "DELETE"
     });
+}
+/**
+ * Create an instance token
+ */
+export function createInstanceToken(organizationId: string, instanceName: string, instanceTokenCreate?: InstanceTokenCreate, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.fetchJson<{
+        status: 200;
+        data: TokenWithValue;
+    } | {
+        status: 400;
+        data: ApiError;
+    } | {
+        status: 403;
+        data: ApiError;
+    } | {
+        status: 404;
+        data: ApiError;
+    } | {
+        status: 500;
+        data: ApiError;
+    }>(`/apis/android.limbar.io/v1alpha1/organizations/${encodeURIComponent(organizationId)}/instances/${encodeURIComponent(instanceName)}/tokens`, oazapfts.json({
+        ...opts,
+        method: "POST",
+        body: instanceTokenCreate
+    }));
 }
 /**
  * Check if the server is alive
