@@ -41,13 +41,13 @@ export type InstanceClientOptions = {
 
 type ScreenshotRequest = {
   type: 'screenshot';
-  sessionId: string;
+  id: string;
 };
 
 type ScreenshotResponse = {
   type: 'screenshot';
   dataUri: string;
-  sessionId: string;
+  id: string;
 };
 
 type ScreenshotData = {
@@ -57,7 +57,7 @@ type ScreenshotData = {
 type ScreenshotErrorResponse = {
   type: 'screenshotError';
   message: string;
-  sessionId: string;
+  id: string;
 };
 
 type ServerMessage = ScreenshotResponse | ScreenshotErrorResponse | { type: string; [key: string]: unknown };
@@ -118,43 +118,43 @@ export async function createInstanceClient(
 
       switch (message.type) {
         case 'screenshot':
-          if (!('dataUri' in message) || typeof message.dataUri !== 'string' || !('sessionId' in message)) {
+          if (!('dataUri' in message) || typeof message.dataUri !== 'string' || !('id' in message)) {
             logger.warn('Received invalid screenshot message:', message);
             break;
           }
 
           const screenshotMessage = message as ScreenshotResponse;
-          const resolver = pendingScreenshotResolvers.get(screenshotMessage.sessionId);
+          const resolver = pendingScreenshotResolvers.get(screenshotMessage.id);
 
           if (!resolver) {
-            logger.warn(`Received screenshot data for unknown or already handled session: ${screenshotMessage.sessionId}`);
+            logger.warn(`Received screenshot data for unknown or already handled session: ${screenshotMessage.id}`);
             break;
           }
 
-          logger.info(`Received screenshot data URI for session ${screenshotMessage.sessionId}.`);
+          logger.info(`Received screenshot data URI for session ${screenshotMessage.id}.`);
           resolver({ dataUri: screenshotMessage.dataUri });
-          pendingScreenshotResolvers.delete(screenshotMessage.sessionId);
-          pendingScreenshotRejecters.delete(screenshotMessage.sessionId);
+          pendingScreenshotResolvers.delete(screenshotMessage.id);
+          pendingScreenshotRejecters.delete(screenshotMessage.id);
           break;
 
         case 'screenshotError':
-          if (!('message' in message) || !('sessionId' in message)) {
+          if (!('message' in message) || !('id' in message)) {
             logger.warn('Received invalid screenshot error message:', message);
             break;
           }
 
           const errorMessage = message as ScreenshotErrorResponse;
-          const rejecter = pendingScreenshotRejecters.get(errorMessage.sessionId);
+          const rejecter = pendingScreenshotRejecters.get(errorMessage.id);
 
           if (!rejecter) {
-            logger.warn(`Received screenshot error for unknown or already handled session: ${errorMessage.sessionId}`);
+            logger.warn(`Received screenshot error for unknown or already handled session: ${errorMessage.id}`);
             break;
           }
 
-          logger.error(`Server reported an error capturing screenshot for session ${errorMessage.sessionId}:`, errorMessage.message);
+          logger.error(`Server reported an error capturing screenshot for session ${errorMessage.id}:`, errorMessage.message);
           rejecter(new Error(errorMessage.message));
-          pendingScreenshotResolvers.delete(errorMessage.sessionId);
-          pendingScreenshotRejecters.delete(errorMessage.sessionId);
+          pendingScreenshotResolvers.delete(errorMessage.id);
+          pendingScreenshotRejecters.delete(errorMessage.id);
           break;
 
         default:
@@ -194,32 +194,32 @@ export async function createInstanceClient(
         return Promise.reject(new Error('WebSocket is not connected or connection is not open.'));
       }
 
-      const sessionId = 'ts-client-' + Date.now();
+      const id = 'ts-client-' + Date.now();
       const screenshotRequest: ScreenshotRequest = {
         type: 'screenshot',
-        sessionId: sessionId,
+        id,
       };
 
       return new Promise<ScreenshotData>((resolve, reject) => {
-        pendingScreenshotResolvers.set(sessionId, resolve);
-        pendingScreenshotRejecters.set(sessionId, reject);
+        pendingScreenshotResolvers.set(id, resolve);
+        pendingScreenshotRejecters.set(id, reject);
 
         logger.info('Sending screenshot request:', screenshotRequest);
         ws!.send(JSON.stringify(screenshotRequest), (err?: Error) => {
           if (err) {
             logger.error('Failed to send screenshot request:', err);
-            pendingScreenshotResolvers.delete(sessionId);
-            pendingScreenshotRejecters.delete(sessionId);
+            pendingScreenshotResolvers.delete(id);
+            pendingScreenshotRejecters.delete(id);
             reject(err);
           }
         });
 
         setTimeout(() => {
-          if (pendingScreenshotResolvers.has(sessionId)) {
-            logger.error(`Screenshot request timed out for session ${sessionId}`);
-            pendingScreenshotRejecters.get(sessionId)?.(new Error('Screenshot request timed out'));
-            pendingScreenshotResolvers.delete(sessionId);
-            pendingScreenshotRejecters.delete(sessionId);
+          if (pendingScreenshotResolvers.has(id)) {
+            logger.error(`Screenshot request timed out for session ${id}`);
+            pendingScreenshotRejecters.get(id)?.(new Error('Screenshot request timed out'));
+            pendingScreenshotResolvers.delete(id);
+            pendingScreenshotRejecters.delete(id);
           }
         }, 30000);
       });

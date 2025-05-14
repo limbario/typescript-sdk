@@ -3,8 +3,8 @@ import path from 'path';
 import { createInstanceClient, InstanceClient } from '@limbar/api';
 
 async function main() {
-  const webrtcUrl = 'wss://eu-hel1-5-staging.limbar.dev/apis/android.limbar.io/v1alpha1/organizations/b658dffe-143f-475b-8977-b386b94ef44d/instances/m1v83ripgw/webrtc';
-  const token = 'lim_daaf7882c51a86a20c4ab4808a2826795e495a21d95e5328';
+  const webrtcUrl = 'wss://eu-hel1-11-2673083.limbar.net/apis/android.limbar.io/v1alpha1/organizations/<org id>/instances/<instance name>/webrtc';
+  const token = 'lim_tokenvalue';
 
   let client: InstanceClient | null = null;
   try {
@@ -19,7 +19,7 @@ async function main() {
     if (dataUri.startsWith(expectedPrefix)) {
       const base64Data = dataUri.substring(expectedPrefix.length);
       const imageBuffer = Buffer.from(base64Data, 'base64');
-      const filePath = path.join("/tmp", 'sdk_screenshot.png'); // Save to /tmp directory
+      const filePath = path.join("/tmp", 'sdk_screenshot.png');
       fs.writeFileSync(filePath, imageBuffer);
       console.log(`Screenshot saved to ${filePath}`);
     } else {
