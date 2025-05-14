@@ -1,9 +1,0 @@
----
-description: General
-globs: 
-alwaysApply: false
----
-This is a component package that has React components written in TypeScript.
-
-Limbar provides remote mobile instances and this codebase provides the React
-components to enable you to embed those mobile instances in your web applications.
