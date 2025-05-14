@@ -3,8 +3,10 @@
   "private": true,
   "description": "Limbar TypeScript SDK that contains API client and UI components.",
   "workspaces": [
-    "packages/*",
-    "examples/simple/*",
+    "packages/api",
+    "packages/ui",
+    "examples/simple/backend",
+    "examples/simple/frontend",
     "examples/screenshot"
   ],
   "scripts": {

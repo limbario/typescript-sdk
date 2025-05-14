@@ -3,8 +3,8 @@ import path from 'path';
 import { createInstanceClient, InstanceClient } from '@limbar/api';
 
 async function main() {
-  const webrtcUrl = 'wss://eu-hel1-5-staging.limbar.dev/apis/android.limbar.io/v1alpha1/organizations/b658dffe-143f-475b-8977-b386b94ef44d/instances/8rnwichqci/webrtc';
-  const token = 'lim_5902d47c712e4f7d6f70c0c518370f182c93f8ff36112ebe';
+  const webrtcUrl = 'wss://eu-hel1-5-staging.limbar.dev/apis/android.limbar.io/v1alpha1/organizations/b658dffe-143f-475b-8977-b386b94ef44d/instances/m1v83ripgw/webrtc';
+  const token = 'lim_daaf7882c51a86a20c4ab4808a2826795e495a21d95e5328';
 
   let client: InstanceClient | null = null;
   try {
