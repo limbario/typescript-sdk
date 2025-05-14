@@ -1,5 +1,44 @@
 import WebSocket from 'ws';
 
+/**
+ * A client for interacting with a Limbar instance
+ */
+export type InstanceClient = {
+  /**
+   * Take a screenshot of the current screen
+   * @returns A promise that resolves to the screenshot data
+   */
+  screenshot: () => Promise<ScreenshotData>;
+  /**
+   * Disconnect from the Limbar instance
+   */
+  disconnect: () => void;
+};
+
+/**
+ * Controls the verbosity of logging in the client
+ */
+export type LogLevel = 'none' | 'error' | 'warn' | 'info' | 'debug';
+
+/**
+ * Configuration options for creating an Instance API client
+ */
+export type InstanceClientOptions = {
+  /**
+   * WebRTC endpoint URL for the Limbar instance
+   */
+  webrtcUrl: string;
+  /**
+   * Authentication token for accessing the Limbar instance
+   */
+  token: string;
+  /**
+   * Controls logging verbosity
+   * @default 'info'
+   */
+  logLevel?: LogLevel;
+};
+
 type ScreenshotRequest = {
   type: 'screenshot';
   sessionId: string;
@@ -23,23 +62,45 @@ type ScreenshotErrorResponse = {
 
 type ServerMessage = ScreenshotResponse | ScreenshotErrorResponse | { type: string; [key: string]: unknown };
 
-export type InstanceClient = {
-  screenshot: () => Promise<ScreenshotData>;
-  disconnect: () => void;
-};
+/**
+ * Creates a client for interacting with a Limbar instance
+ * @param options Configuration options including webrtcUrl, token and log level
+ * @returns An InstanceClient for controlling the instance
+ */
+export async function createInstanceClient(
+  options: InstanceClientOptions
+): Promise<InstanceClient> {
+  const webrtcUrl = options.webrtcUrl;
+  const token = options.token;
+  const serverAddress = `${webrtcUrl}?token=${token}`;
+  const logLevel = options.logLevel ?? 'info';
 
-export async function createInstanceClient(initialServerAddress: string): Promise<InstanceClient> {
   let ws: WebSocket | null = null;
-  let serverAddress: string = initialServerAddress;
   const pendingScreenshotResolvers: Map<string, (value: ScreenshotData | PromiseLike<ScreenshotData>) => void> = new Map();
   const pendingScreenshotRejecters: Map<string, (reason?: any) => void> = new Map();
 
+  // Logger functions
+  const logger = {
+    debug: (...args: any[]) => {
+      if (logLevel === 'debug') console.log(...args);
+    },
+    info: (...args: any[]) => {
+      if (logLevel === 'info' || logLevel === 'debug') console.log(...args);
+    },
+    warn: (...args: any[]) => {
+      if (logLevel === 'warn' || logLevel === 'info' || logLevel === 'debug') console.warn(...args);
+    },
+    error: (...args: any[]) => {
+      if (logLevel !== 'none') console.error(...args);
+    }
+  };
+
   return new Promise<InstanceClient>((resolveConnection, rejectConnection) => {
-    console.log(`Attempting to connect to WebSocket server at ${serverAddress}...`);
+    logger.info(`Attempting to connect to WebSocket server at ${serverAddress}...`);
     ws = new WebSocket(serverAddress);
 
     ws.on('open', () => {
-      console.log(`Connected to ${serverAddress}`);
+      logger.info(`Connected to ${serverAddress}`);
       resolveConnection({
         screenshot,
         disconnect,
@@ -51,41 +112,66 @@ export async function createInstanceClient(initialServerAddress: string): Promis
       try {
         message = JSON.parse(data.toString());
       } catch (e) {
-        console.error('Failed to parse JSON message:', data);
+        logger.error('Failed to parse JSON message:', data);
         return;
       }
 
-      if (message.type === 'screenshot' && 'dataUri' in message && typeof message.dataUri === 'string' && 'sessionId' in message) {
-        const specificMessage = message as ScreenshotResponse;
-        const resolver = pendingScreenshotResolvers.get(specificMessage.sessionId);
+      switch (message.type) {
+        case 'screenshot':
+          if (!('dataUri' in message) || typeof message.dataUri !== 'string' || !('sessionId' in message)) {
+            logger.warn('Received invalid screenshot message:', message);
+            break;
+          }
 
-        if (resolver) {
-          console.log(`Received screenshot data URI for session ${specificMessage.sessionId}.`);
-          resolver({ dataUri: specificMessage.dataUri });
-        } else {
-          console.warn(`Received screenshot data for unknown or already handled session: ${specificMessage.sessionId}`);
-        }
-        pendingScreenshotResolvers.delete(specificMessage.sessionId);
-        pendingScreenshotRejecters.delete(specificMessage.sessionId);
+          const screenshotMessage = message as ScreenshotResponse;
+          const resolver = pendingScreenshotResolvers.get(screenshotMessage.sessionId);
 
-      } else if (message.type === 'screenshotError' && 'message' in message && 'sessionId' in message) {
-        const specificMessage = message as ScreenshotErrorResponse;
-        const rejecter = pendingScreenshotRejecters.get(specificMessage.sessionId);
-        if (rejecter) {
-          console.error(`Server reported an error capturing screenshot for session ${specificMessage.sessionId}:`, specificMessage.message);
-          rejecter(new Error(specificMessage.message));
-          pendingScreenshotResolvers.delete(specificMessage.sessionId);
-          pendingScreenshotRejecters.delete(specificMessage.sessionId);
-        } else {
-          console.warn(`Received screenshot error for unknown or already handled session: ${specificMessage.sessionId}`);
-        }
-      } else {
-        console.log('Received other message:', message);
+          if (!resolver) {
+            logger.warn(`Received screenshot data for unknown or already handled session: ${screenshotMessage.sessionId}`);
+            break;
+          }
+
+          logger.info(`Received screenshot data URI for session ${screenshotMessage.sessionId}.`);
+          resolver({ dataUri: screenshotMessage.dataUri });
+          pendingScreenshotResolvers.delete(screenshotMessage.sessionId);
+          pendingScreenshotRejecters.delete(screenshotMessage.sessionId);
+          break;
+
+        case 'screenshotError':
+          if (!('message' in message) || !('sessionId' in message)) {
+            logger.warn('Received invalid screenshot error message:', message);
+            break;
+          }
+
+          const errorMessage = message as ScreenshotErrorResponse;
+          const rejecter = pendingScreenshotRejecters.get(errorMessage.sessionId);
+
+          if (!rejecter) {
+            logger.warn(`Received screenshot error for unknown or already handled session: ${errorMessage.sessionId}`);
+            break;
+          }
+
+          logger.error(`Server reported an error capturing screenshot for session ${errorMessage.sessionId}:`, errorMessage.message);
+          rejecter(new Error(errorMessage.message));
+          pendingScreenshotResolvers.delete(errorMessage.sessionId);
+          pendingScreenshotRejecters.delete(errorMessage.sessionId);
+          break;
+
+        default:
+          logger.warn(`Received unexpected message type: ${message.type}`);
+          // If there are pending promises, reject them with an error
+          if (pendingScreenshotResolvers.size > 0) {
+            const error = new Error(`Received unexpected message type: ${message.type}`);
+            pendingScreenshotRejecters.forEach(rejecter => rejecter(error));
+            pendingScreenshotResolvers.clear();
+            pendingScreenshotRejecters.clear();
+          }
+          break;
       }
     });
 
     ws.on('error', (err: Error) => {
-      console.error('WebSocket error:', err.message);
+      logger.error('WebSocket error:', err.message);
       if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN && !pendingScreenshotRejecters.size)) {
         rejectConnection(err);
       }
@@ -95,7 +181,7 @@ export async function createInstanceClient(initialServerAddress: string): Promis
     });
 
     ws.on('close', () => {
-      console.log('Disconnected from server.');
+      logger.info('Disconnected from server.');
       if (ws && ws.readyState !== WebSocket.OPEN && ws.readyState !== WebSocket.CONNECTING) {
       }
       pendingScreenshotRejecters.forEach(rejecter => rejecter(new Error('WebSocket closed unexpectedly')));
@@ -118,10 +204,10 @@ export async function createInstanceClient(initialServerAddress: string): Promis
         pendingScreenshotResolvers.set(sessionId, resolve);
         pendingScreenshotRejecters.set(sessionId, reject);
 
-        console.log('Sending screenshot request:', screenshotRequest);
+        logger.info('Sending screenshot request:', screenshotRequest);
         ws!.send(JSON.stringify(screenshotRequest), (err?: Error) => {
           if (err) {
-            console.error('Failed to send screenshot request:', err);
+            logger.error('Failed to send screenshot request:', err);
             pendingScreenshotResolvers.delete(sessionId);
             pendingScreenshotRejecters.delete(sessionId);
             reject(err);
@@ -130,7 +216,7 @@ export async function createInstanceClient(initialServerAddress: string): Promis
 
         setTimeout(() => {
           if (pendingScreenshotResolvers.has(sessionId)) {
-            console.error(`Screenshot request timed out for session ${sessionId}`);
+            logger.error(`Screenshot request timed out for session ${sessionId}`);
             pendingScreenshotRejecters.get(sessionId)?.(new Error('Screenshot request timed out'));
             pendingScreenshotResolvers.delete(sessionId);
             pendingScreenshotRejecters.delete(sessionId);
@@ -141,7 +227,7 @@ export async function createInstanceClient(initialServerAddress: string): Promis
 
     const disconnect = (): void => {
       if (ws) {
-        console.log('Closing WebSocket connection.');
+        logger.info('Closing WebSocket connection.');
         ws.close();
       }
     };

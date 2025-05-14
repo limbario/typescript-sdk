@@ -3,17 +3,12 @@ import path from 'path';
 import { createInstanceClient, InstanceClient } from '@limbar/api';
 
 async function main() {
-  const SERVER_ADDRESS = 'wss://YOUR_SERVER_ADDRESS_HERE'; // TODO: Replace with your actual server address
-  if (SERVER_ADDRESS === 'wss://YOUR_SERVER_ADDRESS_HERE') {
-    console.error('Please update the SERVER_ADDRESS in the example usage code.');
-    console.error('This is the WebSocket endpoint for your Limbar instance, including the access token.');
-    console.error("It typically looks like: wss://<your-region-and-project>.limbar.dev/apis/android.limbar.io/v1alpha1/organizations/<org-id>/instances/<instance-id>/webrtc?token=<your-token>");
-    return;
-  }
+  const webrtcUrl = 'wss://eu-hel1-5-staging.limbar.dev/apis/android.limbar.io/v1alpha1/organizations/b658dffe-143f-475b-8977-b386b94ef44d/instances/8rnwichqci/webrtc';
+  const token = 'lim_5902d47c712e4f7d6f70c0c518370f182c93f8ff36112ebe';
 
   let client: InstanceClient | null = null;
   try {
-    client = await createInstanceClient(SERVER_ADDRESS);
+    client = await createInstanceClient({ webrtcUrl, token });
     console.log('Client created and connection successful.');
 
     const screenshotResult = await client.screenshot();

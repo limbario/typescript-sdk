@@ -5,7 +5,8 @@
   "main": "main.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "tsx watch main.ts"
+    "start": "tsx watch main.ts",
+    "build": "tsc -b"
   },
   "author": "",
   "license": "ISC",
