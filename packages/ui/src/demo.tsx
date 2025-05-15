@@ -14,6 +14,7 @@ function InstanceLoader() {
   const remoteControlRef = useRef<RemoteControlHandle>(null);
   const [urlToOpen, setUrlToOpen] = useState<string>("https://www.limbar.io");
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [screenshotDataUri, setScreenshotDataUri] = useState<string | null>(null);
   
   const [instanceData, setInstanceData] = useState<InstanceData | null>(null);
   const [appState, setAppState] = useState<'idle' | 'creating' | 'running' | 'stopping' | 'error'>('idle');
@@ -269,6 +270,43 @@ function InstanceLoader() {
           >
             {isRefreshing ? 'Sending RR...' : 'Refresh (Send RR)'}
           </button>
+        </div>
+      )}
+
+      {/* UI for taking a screenshot */}
+      {appState === 'running' && instanceData && (
+        <div className="w-full flex flex-col items-center gap-4 p-4 border rounded-lg bg-white shadow-sm">
+          <button
+            onClick={async () => {
+              if (remoteControlRef.current) {
+                try {
+                  console.log("Requesting screenshot...");
+                  const screenshot = await remoteControlRef.current.screenshot();
+                  console.log("Screenshot received:", screenshot.dataUri.substring(0, 50) + "...");
+                  setScreenshotDataUri(screenshot.dataUri);
+                } catch (err) {
+                  console.error("Failed to take screenshot:", err);
+                  setError("Failed to take screenshot: " + (err instanceof Error ? err.message : String(err)));
+                  // Optionally, set appState to 'error' or show a more specific error message for screenshots
+                }
+              }
+            }}
+            className="px-5 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-lg shadow"
+          >
+            Take Screenshot
+          </button>
+          {screenshotDataUri && (
+            <div className="mt-4 p-2 border rounded-md shadow-inner bg-gray-50 relative">
+              <img src={screenshotDataUri} alt="Instance Screenshot" className="max-w-full h-auto rounded" style={{ maxHeight: '400px' }} />
+              <button
+                onClick={() => setScreenshotDataUri(null)}
+                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 text-xs leading-none hover:bg-red-600"
+                aria-label="Clear screenshot"
+              >
+                X
+              </button>
+            </div>
+          )}
         </div>
       )}
 

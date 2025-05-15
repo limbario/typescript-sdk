@@ -32,6 +32,10 @@ interface RemoteControlProps {
   openUrl?: string;
 }
 
+interface ScreenshotData {
+  dataUri: string;
+}
+
 export interface ImperativeKeyboardEvent {
   type: 'keydown' | 'keyup';
   code: string; // e.g., "KeyA", "Enter", "ShiftLeft"
@@ -44,6 +48,7 @@ export interface ImperativeKeyboardEvent {
 export interface RemoteControlHandle {
   openUrl: (url: string) => void;
   sendKeyEvent: (event: ImperativeKeyboardEvent) => void;
+  screenshot: () => Promise<ScreenshotData>;
 }
 
 const CONTROL_MSG_TYPE = {
@@ -404,6 +409,8 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const keepAliveIntervalRef = useRef<number | undefined>(undefined);
+  const pendingScreenshotResolversRef = useRef<Map<string, (value: ScreenshotData | PromiseLike<ScreenshotData>) => void>>(new Map());
+  const pendingScreenshotRejectersRef = useRef<Map<string, (reason?: any) => void>>(new Map());
   
   // Map to track active pointers (mouse or touch) and their last known position inside the video
   // Key: pointerId (-1 for mouse, touch.identifier for touch), Value: { x: number, y: number }
@@ -959,11 +966,20 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
 
       // Handle incoming messages
       wsRef.current.onmessage = async (event) => {
+        let message;
         try {
-          const message = JSON.parse(event.data);
-          updateStatus('Received: ' + message.type);
-
-          if (message.type === 'answer' && peerConnectionRef.current) {
+          message = JSON.parse(event.data);
+        } catch (e) {
+          debugWarn('Error parsing message:', e);
+          return;
+        }
+        updateStatus('Received: ' + message.type);
+        switch (message.type) {
+          case 'answer':
+            if (!peerConnectionRef.current) {
+              updateStatus('No peer connection, skipping answer');
+              break;
+            }
             await peerConnectionRef.current.setRemoteDescription(
               new RTCSessionDescription({
                 type: 'answer',
@@ -971,18 +987,54 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
               })
             );
             updateStatus('Set remote description');
-          } else if (message.type === 'candidate' && peerConnectionRef.current) {
+            break;
+          case 'candidate':
+            if (!peerConnectionRef.current) {
+              updateStatus('No peer connection, skipping candidate');
+              break;
+            }
             await peerConnectionRef.current.addIceCandidate(
               new RTCIceCandidate({
-                candidate: message.candidate,
-                sdpMid: message.sdpMid,
-                sdpMLineIndex: message.sdpMLineIndex
-              })
-            );
+                  candidate: message.candidate,
+                  sdpMid: message.sdpMid,
+                  sdpMLineIndex: message.sdpMLineIndex
+                })
+              );
             updateStatus('Added ICE candidate');
-          }
-        } catch (e) {
-          updateStatus('Error handling message: ' + e);
+            break;
+          case 'screenshot':
+            if (typeof message.id !== 'string' || typeof message.dataUri !== 'string') {
+              debugWarn('Received invalid screenshot success message:', message);
+              break;
+            }
+            const resolver = pendingScreenshotResolversRef.current.get(message.id);
+            if (!resolver) {
+              debugWarn(`Received screenshot data for unknown or handled id: ${message.id}`);
+              break;
+            }
+            debugLog(`Received screenshot data for id ${message.id}`);
+            resolver({ dataUri: message.dataUri });
+            pendingScreenshotResolversRef.current.delete(message.id);
+            pendingScreenshotRejectersRef.current.delete(message.id);
+            break;
+          case 'screenshotError':
+            if (typeof message.id !== 'string' || typeof message.message !== 'string') {
+              debugWarn('Received invalid screenshot error message:', message);
+              break;
+            }
+            const rejecter = pendingScreenshotRejectersRef.current.get(message.id);
+            if (!rejecter) {
+              debugWarn(`Received screenshot error for unknown or handled id: ${message.id}`);
+              break;
+            }
+            debugWarn(`Received screenshot error for id ${message.id}: ${message.message}`);
+            rejecter(new Error(message.message));
+            pendingScreenshotResolversRef.current.delete(message.id);
+            pendingScreenshotRejectersRef.current.delete(message.id);
+            break;
+          default:
+            debugWarn(`Received unhandled message type: ${message.type}`, message);
+            break;
         }
       };
 
@@ -1110,6 +1162,43 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
       if (message) {
         sendBinaryControlMessage(message);
       }
+    },
+    screenshot: (): Promise<ScreenshotData> => {
+      return new Promise<ScreenshotData>((resolve, reject) => {
+        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+          debugWarn('WebSocket not open, cannot send screenshot command.');
+          return reject(new Error('WebSocket is not connected or connection is not open.'));
+        }
+
+        const id = `ui-ss-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        const request = {
+          type: 'screenshot', // Matches the type expected by instance API
+          id: id,
+        };
+
+        pendingScreenshotResolversRef.current.set(id, resolve);
+        pendingScreenshotRejectersRef.current.set(id, reject);
+
+        debugLog('Sending screenshot request:', request);
+        try {
+          wsRef.current.send(JSON.stringify(request));
+        } catch (err) {
+          debugWarn('Failed to send screenshot request immediately:', err);
+          pendingScreenshotResolversRef.current.delete(id);
+          pendingScreenshotRejectersRef.current.delete(id);
+          reject(err);
+          return; // Important to return here if send failed synchronously
+        }
+
+        setTimeout(() => {
+          if (pendingScreenshotResolversRef.current.has(id)) {
+            debugWarn(`Screenshot request timed out for id ${id}`);
+            pendingScreenshotRejectersRef.current.get(id)?.(new Error('Screenshot request timed out'));
+            pendingScreenshotResolversRef.current.delete(id);
+            pendingScreenshotRejectersRef.current.delete(id);
+          }
+        }, 30000); // 30-second timeout
+      });
     }
   }));
 
