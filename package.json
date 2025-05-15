@@ -3,8 +3,11 @@
   "private": true,
   "description": "Limbar TypeScript SDK that contains API client and UI components.",
   "workspaces": [
-    "packages/*",
-    "examples/simple/*"
+    "packages/api",
+    "packages/ui",
+    "examples/simple/backend",
+    "examples/simple/frontend",
+    "examples/screenshot"
   ],
   "scripts": {
     "build": "npm run generate -ws --if-present && npm run build -ws --if-present",
@@ -15,6 +18,7 @@
   "devDependencies": {
     "@eslint/js": "^9.21.0",
     "@types/node": "^22.15.3",
+    "@types/ws": "^8.18.1",
     "eslint": "^9.21.0",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.19",

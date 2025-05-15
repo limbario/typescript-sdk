@@ -1,8 +1,17 @@
 {
-  "name": "limbar-sample-backend",
+  "name": "limbar-screenshot-example",
+  "description": "Example usage of the SDK screenshot functionality used to take screenshots of the Android emulator or iOS simulator from Limbar",
   "version": "1.0.0",
   "type": "module",
   "main": "index.ts",
+  "keywords": [
+    "sdk",
+    "example",
+    "screenshot",
+    "limbar",
+    "android emulator",
+    "ios simulator"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "tsx watch index.ts",
@@ -10,17 +19,12 @@
   },
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "@limbar/api": "*",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.21.2"
+    "ws": "^8.17.1"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
-    "@types/node": "^20.14.13",
+    "@types/ws": "^8.18.1",
     "tsx": "^4.16.2",
     "typescript": "~5.5.4"
   }
