@@ -1,6 +1,6 @@
 # @limbar/api
 
-Create Android emulators or iOS simulators as if you're calling your own internal function.
+Create Android emulators or iOS simulators as if you're calling your own internal functions.
 
 This package contains a fully-typed HTTP client to communicate with Limbar services,
 specifically region endpoints and main Limbar API with following features:
@@ -54,3 +54,18 @@ console.log({
     token: result.data.token,
 }, "Success! You can deliver the token and webrtcUrl to RemoteControl component from @limbar/ui in your frontend!");
 ```
+
+## Region Client
+
+It is used to communicate with a given region, such as `eu-north1`, to manage instances and their tokens as shown above.
+
+It's effectively a wrapper around code generated from [Limbar OpenAPI](./openapi/region.yaml).
+See the code in [index.ts](./src/region/index.ts).
+
+## Instance Client
+
+It is used to communicate directly with an instance in server environment, regardless of whether it's
+Android emulator or iOS simulator. For example, you can request a screenshot of a running instance at any time.
+
+It's based on standard WebSocket messages.
+See the code in [index.ts](./src/instance/index.ts).
