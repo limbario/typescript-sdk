@@ -21,7 +21,7 @@ function App() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          name: `instance-${Date.now()}`
+          name: `sdk-example`
         })
       });
       const data = await response.json();
