@@ -27,6 +27,7 @@
     "generate": "oazapfts openapi/region.yaml src/region/zz_client.ts"
   },
   "dependencies": {
+    "@paralleldrive/cuid2": "^2.2.2",
     "oazapfts": "^6.2.2"
   },
   "keywords": [
