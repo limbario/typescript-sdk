@@ -337,6 +337,15 @@ components:
               type: object
               additionalProperties:
                 type: string
+            inactivityTimeout:
+              type: string
+              format: duration
+              description: |-
+                After how many minutes of inactivity should the instance be terminated.
+                Example values 1m, 10m, 3h.
+                Default is 3m.
+                Providing "0" disables inactivity checks altogether.
+              default: 3m
       required:
         - metadata
     AndroidInstanceWithToken:

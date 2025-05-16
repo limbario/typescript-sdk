@@ -47,6 +47,11 @@ export type AndroidInstanceCreate = {
         selector?: {
             [key: string]: string;
         };
+        /** After how many minutes of inactivity should the instance be terminated.
+        Example values 1m, 10m, 3h.
+        Default is 3m.
+        Providing "0" disables inactivity checks altogether. */
+        inactivityTimeout?: string;
     };
 };
 export type AndroidInstanceWithToken = {
