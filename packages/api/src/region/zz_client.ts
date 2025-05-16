@@ -38,6 +38,9 @@ export type ApiError = {
 export type AndroidInstanceCreate = {
     metadata: {
         name: string;
+        labels?: {
+            [key: string]: string;
+        };
     };
     spec?: {
         os?: string;
@@ -74,8 +77,9 @@ export type TokenWithValue = {
 /**
  * Get Android instances in the region
  */
-export function listAndroidInstances(organizationId: string, { state }: {
+export function listAndroidInstances(organizationId: string, { state, labelSelector }: {
     state?: AndroidInstanceState;
+    labelSelector?: string;
 } = {}, opts?: Oazapfts.RequestOpts) {
     return oazapfts.fetchJson<{
         status: 200;
@@ -90,7 +94,8 @@ export function listAndroidInstances(organizationId: string, { state }: {
         status: 500;
         data: ApiError;
     }>(`/apis/android.limbar.io/v1alpha1/organizations/${encodeURIComponent(organizationId)}/instances${QS.query(QS.explode({
-        state
+        state,
+        labelSelector
     }))}`, {
         ...opts
     });

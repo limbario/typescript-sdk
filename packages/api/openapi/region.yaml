@@ -20,6 +20,15 @@ paths:
           in: query
           schema:
             $ref: "#/components/schemas/AndroidInstanceState"
+        - name: labelSelector
+          description: |
+            Labels filter to apply to Android instances to return.
+            Expects a comma-separated list of key=value pairs (e.g., env=prod,region=us-west).
+          required: false
+          in: query
+          schema:
+            type: string
+            example: "env=prod,version=1.2"
       responses:
         '200':
           description: OK
@@ -312,6 +321,10 @@ components:
             name:
               type: string
               maxLength: 63
+            labels:
+              type: object
+              additionalProperties:
+                type: string
           required:
             - name
         spec:
