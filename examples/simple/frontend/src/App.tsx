@@ -1,5 +1,5 @@
 import { RemoteControl } from '@limbar/ui';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 function App() {
   const [instanceData, setInstanceData] = useState<{
@@ -40,27 +40,18 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    createInstance();
+  }, []); // Empty dependency array ensures this runs only once on mount
+
   return (
     <div className="container" style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
       <h1>Limbar Remote Control</h1>
       
-      {!instanceData && (
-        <div style={{ marginBottom: '20px' }}>
-          <button 
-            onClick={createInstance}
-            disabled={loading}
-            style={{
-              padding: '10px 20px',
-              fontSize: '16px',
-              backgroundColor: loading ? '#cccccc' : '#007bff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: loading ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {loading ? 'Creating Instance...' : 'Create New Instance'}
-          </button>
+      {loading && !instanceData && (
+        <div style={{ marginBottom: '20px', textAlign: 'center', padding: '20px', border: '1px solid #eee', borderRadius: '4px' }}>
+          <p>Creating instance, please wait...</p>
+          {/* Optionally, add a spinner or loading animation here */}
         </div>
       )}
       

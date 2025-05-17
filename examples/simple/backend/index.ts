@@ -34,7 +34,7 @@ app.post('/create-instance', async (req: Request<{}, {}, { name?: string }>, res
   try {
     const result = await regionClient.getOrCreateInstance(organizationId, {
       instance: {
-        metadata: { name }
+        metadata: { name: "demorello" }
       },
       wait: true
     });
