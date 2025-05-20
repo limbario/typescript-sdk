@@ -864,13 +864,25 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
       
       // Add transceivers for video and audio with H.264 preference
       const videoTransceiver = peerConnectionRef.current.addTransceiver('video', { direction: 'recvonly' });
-      // Set codec preferences to prefer H.264
+      // Set codec preferences to prefer HEVC, then H.264
       const supportedCodecs = RTCRtpReceiver.getCapabilities("video")?.codecs;
       if (supportedCodecs) {
-        // Sort codecs to prefer H.264
+        // Sort codecs to prefer HEVC, then H.264
         const sortedCodecs = [...supportedCodecs].sort((a, b) => {
-          if (a.mimeType.toLowerCase().includes('h264')) return -1;
-          if (b.mimeType.toLowerCase().includes('h264')) return 1;
+          const aMime = a.mimeType.toLowerCase();
+          const bMime = b.mimeType.toLowerCase();
+
+          const aIsHevc = aMime.includes('hevc') || aMime.includes('h265');
+          const bIsHevc = bMime.includes('hevc') || bMime.includes('h265');
+          const aIsH264 = aMime.includes('h264');
+          const bIsH264 = bMime.includes('h264');
+
+          if (aIsHevc && !bIsHevc) return -1;
+          if (!aIsHevc && bIsHevc) return 1;
+
+          if (aIsH264 && !bIsH264) return -1;
+          if (!aIsH264 && bIsH264) return 1;
+          
           return 0;
         });
         
