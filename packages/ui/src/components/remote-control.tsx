@@ -863,37 +863,37 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
       peerConnectionRef.current.addTransceiver('audio', { direction: 'recvonly' });
       
       // Add transceivers for video and audio with H.264 preference
-      const videoTransceiver = peerConnectionRef.current.addTransceiver('video', { direction: 'recvonly' });
+      peerConnectionRef.current.addTransceiver('video', { direction: 'recvonly' });
       // Set codec preferences to prefer HEVC, then H.264
-      const supportedCodecs = RTCRtpReceiver.getCapabilities("video")?.codecs;
-      if (supportedCodecs) {
-        // Sort codecs to prefer HEVC, then H.264
-        const sortedCodecs = [...supportedCodecs].sort((a, b) => {
-          const aMime = a.mimeType.toLowerCase();
-          const bMime = b.mimeType.toLowerCase();
+      // const supportedCodecs = RTCRtpReceiver.getCapabilities("video")?.codecs;
+      // if (supportedCodecs) {
+      //   // Sort codecs to prefer HEVC, then H.264
+      //   const sortedCodecs = [...supportedCodecs].sort((a, b) => {
+      //     const aMime = a.mimeType.toLowerCase();
+      //     const bMime = b.mimeType.toLowerCase();
 
-          const aIsHevc = aMime.includes('hevc') || aMime.includes('h265');
-          const bIsHevc = bMime.includes('hevc') || bMime.includes('h265');
-          const aIsH264 = aMime.includes('h264');
-          const bIsH264 = bMime.includes('h264');
+      //     const aIsHevc = aMime.includes('hevc') || aMime.includes('h265');
+      //     const bIsHevc = bMime.includes('hevc') || bMime.includes('h265');
+      //     const aIsH264 = aMime.includes('h264');
+      //     const bIsH264 = bMime.includes('h264');
 
-          if (aIsHevc && !bIsHevc) return -1;
-          if (!aIsHevc && bIsHevc) return 1;
+      //     if (aIsHevc && !bIsHevc) return -1;
+      //     if (!aIsHevc && bIsHevc) return 1;
 
-          if (aIsH264 && !bIsH264) return -1;
-          if (!aIsH264 && bIsH264) return 1;
+      //     if (aIsH264 && !bIsH264) return -1;
+      //     if (!aIsH264 && bIsH264) return 1;
           
-          return 0;
-        });
+      //     return 0;
+      //   });
         
-        try {
-          videoTransceiver.setCodecPreferences(sortedCodecs);
-          debugLog('Codec preferences set:', sortedCodecs);
-        } catch (e) {
-          // Keep this as console.warn as it's a potentially important issue even when not debugging
-          console.warn('Failed to set codec preferences:', e);
-        }
-      }
+      //   try {
+      //     videoTransceiver.setCodecPreferences(sortedCodecs);
+      //     debugLog('Codec preferences set:', sortedCodecs);
+      //   } catch (e) {
+      //     // Keep this as console.warn as it's a potentially important issue even when not debugging
+      //     console.warn('Failed to set codec preferences:', e);
+      //   }
+      // }
 
 
       // Create data channel
