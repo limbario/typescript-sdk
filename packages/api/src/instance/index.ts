@@ -1,4 +1,4 @@
-import WebSocket from 'ws';
+import WebSocket from "modern-isomorphic-ws";
 
 /**
  * A client for interacting with a Limbar instance
