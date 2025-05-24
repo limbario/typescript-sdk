@@ -1,4 +1,8 @@
 import React, { useEffect, useRef, useState, useMemo, forwardRef, useImperativeHandle } from 'react'
+// Default styles – consumers can choose not to import this CSS file if they
+// want to style everything themselves. Keeping it as a side-effect import
+// keeps the component zero-config for most users.
+import './remote-control.css';
 
 declare global {
   interface Window {
@@ -6,7 +10,7 @@ declare global {
   }
 }
 
-interface RemoteControlProps {
+export interface RemoteControlProps {
   // url is the URL of the instance to connect to.
   url: string;
 
@@ -16,6 +20,33 @@ interface RemoteControlProps {
   // className is the class name to apply to the component
   // on top of the default styles.
   className?: string;
+
+  // style lets callers override/extend the container's styles while still
+  // benefiting from the default `.rc-container` class.
+  style?: React.CSSProperties;
+
+  // videoStyle applies to the underlying <video> element.
+  videoStyle?: React.CSSProperties;
+
+  // placeholder renders while the connection is being established. If not
+  // provided a simple spinner is shown.
+  placeholder?: React.ReactNode;
+
+  // Callback invoked once the WebRTC connection reaches the "connected"
+  // state.
+  onConnect?: (sessionId: string) => void;
+
+  // Callback invoked when the connection transitions away from "connected"
+  // (e.g. disconnected, failed, closed).
+  onDisconnect?: (sessionId: string) => void;
+
+  // Callback for unrecoverable errors (WebSocket, PeerConnection, etc.).
+  onError?: (error: Error) => void;
+
+  // Disable adding the default CSS classes (rc-*) so the integrator can take
+  // full control of styling while still importing the component-level CSS for
+  // animation keyframes, etc.
+  disableDefaultStyles?: boolean;
 
   // sessionId is a unique identifier for the WebRTC session
   // with the source to prevent conflicts between other
@@ -30,7 +61,7 @@ interface RemoteControlProps {
   openUrl?: string;
 }
 
-interface ScreenshotData {
+export interface ScreenshotData {
   dataUri: string;
 }
 
@@ -395,26 +426,20 @@ function getAndroidKeycodeAndMeta(event: React.KeyboardEvent): { keycode: number
 }
 
 export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>(({ 
-  className, 
-  url, 
-  token, 
-  sessionId: propSessionId, 
-  openUrl 
+  className,
+  style,
+  videoStyle,
+  placeholder,
+  onConnect,
+  onDisconnect,
+  onError,
+  disableDefaultStyles = false,
+  url,
+  token,
+  sessionId: propSessionId,
+  openUrl,
 }: RemoteControlProps, ref) => {
-  // Add the spin animation CSS
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-      }
-    `;
-    document.head.appendChild(style);
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
+  // No need for dynamic <style> injection anymore – keyframes live in CSS.
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -830,10 +855,12 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
       
       wsRef.current.onerror = (error) => {
         updateStatus('WebSocket error: ' + error);
+        onError?.(error as unknown as Error);
       };
 
       wsRef.current.onclose = () => {
         updateStatus('WebSocket closed');
+        onDisconnect?.(sessionId);
       };
 
       // Wait for WebSocket to connect
@@ -918,8 +945,16 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
 
       // Set up connection state monitoring
       peerConnectionRef.current.onconnectionstatechange = () => {
-        updateStatus('Connection state: ' + peerConnectionRef.current?.connectionState);
-        setIsConnected(peerConnectionRef.current?.connectionState === 'connected');
+        const state = peerConnectionRef.current?.connectionState;
+        updateStatus('Connection state: ' + state);
+        const currentlyConnected = state === 'connected';
+        setIsConnected(currentlyConnected);
+
+        if (currentlyConnected) {
+          onConnect?.(sessionId);
+        } else if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+          onDisconnect?.(sessionId);
+        }
       };
 
       peerConnectionRef.current.oniceconnectionstatechange = () => {
@@ -1190,11 +1225,19 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
     }
   }));
 
+  const containerClassName = disableDefaultStyles ? className : [
+    'rc-container',
+    className
+  ].filter(Boolean).join(' ');
+
+  const videoClassName = disableDefaultStyles ? undefined : 'rc-video';
+
   return (
     <div 
-      className={className}
+      className={containerClassName}
       style={{
-        touchAction: 'none'
+        touchAction: 'none',
+        ...style,
       }}
       // Attach unified handler to all interaction events on the container
       onMouseDown={handleInteraction} 
@@ -1208,15 +1251,11 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
     >
       <video
         ref={videoRef}
-        className=""
+        className={videoClassName}
         autoPlay
         playsInline
         tabIndex={0} // Make it focusable
-        style={{
-          outline: 'none',
-          pointerEvents: 'none',
-          cursor: 'none'
-        }}
+        style={videoStyle}
         onKeyDown={handleKeyboard}
         onKeyUp={handleKeyboard}
         onClick={handleVideoClick}
@@ -1232,34 +1271,16 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
         }}
       />
       {!isConnected && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          bottom: 0,
-          left: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{
-              animation: 'spin 1s linear infinite',
-              borderRadius: '50%',
-              height: '32px',
-              width: '32px',
-              borderTop: '2px solid #3b82f6', // blue-500 color
-              borderRight: '2px solid transparent',
-              borderBottom: '2px solid transparent',
-              borderLeft: '2px solid transparent',
-              margin: '0 auto 8px auto'
-            }}></div>
-            <p style={{
-              fontSize: '14px',
-              color: '#6b7280' // gray-500 color
-            }}>Connecting...</p>
+        placeholder ? (
+          <div className="rc-placeholder-wrapper">{placeholder}</div>
+        ) : (
+          <div className="rc-placeholder-wrapper">
+            <div>
+              <div className="rc-spinner" />
+              <p style={{ fontSize: '14px', color: '#6b7280' }}>Connecting...</p>
+            </div>
           </div>
-        </div>
+        )
       )}
     </div>
   );
