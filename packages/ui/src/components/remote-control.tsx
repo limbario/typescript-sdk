@@ -1,6 +1,4 @@
 import React, { useEffect, useRef, useState, useMemo, forwardRef, useImperativeHandle } from 'react'
-import { clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
 
 declare global {
   interface Window {
@@ -403,6 +401,21 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
   sessionId: propSessionId, 
   openUrl 
 }: RemoteControlProps, ref) => {
+  // Add the spin animation CSS
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
@@ -1179,10 +1192,11 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
 
   return (
     <div 
-      className={twMerge(clsx("relative flex h-full items-center justify-center bg-muted/90", className))}
-      style={{ touchAction: 'none' }} // Keep touchAction none for the container
+      className={className}
+      style={{
+        touchAction: 'none'
+      }}
       // Attach unified handler to all interaction events on the container
-      // This helps capture mouseleave correctly even if the video element itself isn't hovered
       onMouseDown={handleInteraction} 
       onMouseMove={handleInteraction}
       onMouseUp={handleInteraction}
@@ -1194,11 +1208,15 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
     >
       <video
         ref={videoRef}
-        className="max-h-full h-full max-w-full object-contain cursor-none"
+        className=""
         autoPlay
         playsInline
         tabIndex={0} // Make it focusable
-        style={{outline: 'none', pointerEvents: 'none'}}
+        style={{
+          outline: 'none',
+          pointerEvents: 'none',
+          cursor: 'none'
+        }}
         onKeyDown={handleKeyboard}
         onKeyUp={handleKeyboard}
         onClick={handleVideoClick}
@@ -1214,10 +1232,32 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
         }}
       />
       {!isConnected && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary mx-auto mb-2"></div>
-            <p className="text-sm text-muted-foreground">Connecting...</p>
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              animation: 'spin 1s linear infinite',
+              borderRadius: '50%',
+              height: '32px',
+              width: '32px',
+              borderTop: '2px solid #3b82f6', // blue-500 color
+              borderRight: '2px solid transparent',
+              borderBottom: '2px solid transparent',
+              borderLeft: '2px solid transparent',
+              margin: '0 auto 8px auto'
+            }}></div>
+            <p style={{
+              fontSize: '14px',
+              color: '#6b7280' // gray-500 color
+            }}>Connecting...</p>
           </div>
         </div>
       )}
