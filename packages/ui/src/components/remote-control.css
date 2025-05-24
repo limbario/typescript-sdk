@@ -1,0 +1,55 @@
+/* Default styles for the RemoteControl component
+   Integrators can override these styles or omit this import entirely if they
+   prefer full control. CSS variables provide an easy way to tweak colours and
+   sizes without having to duplicate the whole rule-set. */
+
+:root {
+  /* Customisable via CSS variables */
+  --rc-spinner-size: 32px;
+  --rc-spinner-color: #3b82f6; /* Tailwind blue-500 */
+}
+
+.rc-container {
+  position: relative;
+  touch-action: none;
+}
+
+.rc-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  outline: none;
+  pointer-events: none;
+  cursor: none;
+}
+
+/* Simple indeterminate spinner used while establishing the WebRTC connection */
+.rc-spinner {
+  animation: rc-spin 1s linear infinite;
+  border-radius: 50%;
+  height: var(--rc-spinner-size);
+  width: var(--rc-spinner-size);
+  border-top: 2px solid var(--rc-spinner-color);
+  border-right: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+  border-left: 2px solid transparent;
+  margin: 0 auto 8px auto;
+}
+
+@keyframes rc-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Wrapper that centres the placeholder/spinner over the video */
+.rc-placeholder-wrapper {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+} 

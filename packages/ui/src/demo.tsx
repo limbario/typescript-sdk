@@ -1,6 +1,6 @@
-import { StrictMode, useState, useCallback, useRef } from 'react'
+import { StrictMode, useState, useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
-import { RemoteControl, RemoteControlHandle } from './components/remote-control'
+import { useRemoteControl } from './hooks/useRemoteControl'
 
 interface InstanceData {
   webrtcUrl: string;
@@ -11,7 +11,6 @@ interface InstanceData {
 function InstanceLoader() {
   const [organizationId, setOrganizationId] = useState<string>("");
   const [apiToken, setApiToken] = useState<string>("");
-  const remoteControlRef = useRef<RemoteControlHandle>(null);
   const [urlToOpen, setUrlToOpen] = useState<string>("https://www.limbar.io");
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [screenshotDataUri, setScreenshotDataUri] = useState<string | null>(null);
@@ -20,6 +19,21 @@ function InstanceLoader() {
   const [appState, setAppState] = useState<'idle' | 'creating' | 'running' | 'stopping' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [currentInstanceName, setCurrentInstanceName] = useState<string>('');
+
+  // Convenience hook that gives us the component element plus imperative helpers
+  const {
+    Component: RemoteControlElement,
+    openUrl: sendOpenUrl,
+    screenshot: takeScreenshot,
+    sendKeyEvent,
+  } = useRemoteControl({
+    // Provide empty strings until we actually have an instance – the component
+    // will attempt to connect once valid credentials arrive.
+    url: instanceData?.webrtcUrl ?? '',
+    token: instanceData?.token ?? '',
+    placeholder: <p className="text-gray-500">Connecting…</p>,
+    className: '',
+  });
 
   const generateInstanceName = useCallback(() => {
       return `ui-demo-${Math.random().toString(36).substring(2, 10)}`;
@@ -140,7 +154,7 @@ function InstanceLoader() {
     case 'stopping':
       mainContent = (
         <div className={`relative h-[80vh] w-full overflow-hidden rounded-lg bg-muted/90 shadow-lg ${appState === 'stopping' ? 'opacity-50' : ''}`}>
-          {instanceData && <RemoteControl ref={remoteControlRef} url={instanceData.webrtcUrl} token={instanceData.token} />}
+          {instanceData && RemoteControlElement}
         </div>
       );
       break;
@@ -233,8 +247,8 @@ function InstanceLoader() {
           </div>
           <button
             onClick={() => {
-              if (remoteControlRef.current && urlToOpen) {
-                remoteControlRef.current.openUrl(urlToOpen);
+              if (urlToOpen) {
+                sendOpenUrl(urlToOpen);
               }
             }}
             className="px-5 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-lg shadow disabled:bg-gray-400 disabled:cursor-not-allowed"
@@ -250,18 +264,17 @@ function InstanceLoader() {
         <div className="w-full flex flex-col md:flex-row gap-4 p-4 border rounded-lg bg-white shadow-sm items-end justify-center">
           <button
             onClick={async () => {
-              if (remoteControlRef.current && !isRefreshing) {
+              if (!isRefreshing) {
                 setIsRefreshing(true);
-                const rParams = { code: 'KeyR', shiftKey: true }; // Uppercase R
-                if (remoteControlRef.current) {
-                  remoteControlRef.current.sendKeyEvent({ type: 'keydown', ...rParams });
-                  await new Promise(r => setTimeout(r, 50)); 
-                  remoteControlRef.current.sendKeyEvent({ type: 'keyup', ...rParams });
-                  await new Promise(r => setTimeout(r, 70)); 
-                  remoteControlRef.current.sendKeyEvent({ type: 'keydown', ...rParams });
-                  await new Promise(r => setTimeout(r, 50)); 
-                  remoteControlRef.current.sendKeyEvent({ type: 'keyup', ...rParams });
-                }
+                const rParams = { code: 'KeyR', shiftKey: true } as const; // Uppercase R
+                // RR = two quick presses of Shift+R
+                sendKeyEvent({ type: 'keydown', ...rParams });
+                await new Promise((r) => setTimeout(r, 50));
+                sendKeyEvent({ type: 'keyup', ...rParams });
+                await new Promise((r) => setTimeout(r, 70));
+                sendKeyEvent({ type: 'keydown', ...rParams });
+                await new Promise((r) => setTimeout(r, 50));
+                sendKeyEvent({ type: 'keyup', ...rParams });
                 setIsRefreshing(false);
               }
             }}
@@ -278,17 +291,14 @@ function InstanceLoader() {
         <div className="w-full flex flex-col items-center gap-4 p-4 border rounded-lg bg-white shadow-sm">
           <button
             onClick={async () => {
-              if (remoteControlRef.current) {
-                try {
-                  console.log("Requesting screenshot...");
-                  const screenshot = await remoteControlRef.current.screenshot();
-                  console.log("Screenshot received:", screenshot.dataUri.substring(0, 50) + "...");
-                  setScreenshotDataUri(screenshot.dataUri);
-                } catch (err) {
-                  console.error("Failed to take screenshot:", err);
-                  setError("Failed to take screenshot: " + (err instanceof Error ? err.message : String(err)));
-                  // Optionally, set appState to 'error' or show a more specific error message for screenshots
-                }
+              try {
+                console.log('Requesting screenshot...');
+                const screenshot = await takeScreenshot();
+                console.log('Screenshot received:', screenshot.dataUri.substring(0, 50) + '...');
+                setScreenshotDataUri(screenshot.dataUri);
+              } catch (err) {
+                console.error('Failed to take screenshot:', err);
+                setError('Failed to take screenshot: ' + (err instanceof Error ? err.message : String(err)));
               }
             }}
             className="px-5 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-lg shadow"
