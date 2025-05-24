@@ -94,8 +94,6 @@ const debugWarn = (...args: any[]) => {
   }
 };
 
-
-
 export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>(({ 
   className,
   style,
@@ -110,8 +108,6 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
   sessionId: propSessionId,
   openUrl,
 }: RemoteControlProps, ref) => {
-  // No need for dynamic <style> injection anymore – keyframes live in CSS.
-
   const videoRef = useRef<HTMLVideoElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
@@ -847,10 +843,8 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
           <div className="rc-placeholder-wrapper">{placeholder}</div>
         ) : (
           <div className="rc-placeholder-wrapper">
-            <div>
-              <div className="rc-spinner" />
-              <p style={{ fontSize: '14px', color: '#6b7280' }}>Connecting...</p>
-            </div>
+            <div className="rc-spinner" />
+            <p style={{ fontSize: '14px', color: '#6b7280' }}>Connecting...</p>
           </div>
         )
       )}
