@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
+import './remote-control.css'
 
 import { ANDROID_KEYS, AMOTION_EVENT, codeMap } from "../core/constants";
 import { createTouchControlMessage, createInjectKeycodeMessage, createSetClipboardMessage } from '../core/webrtc-messages';
@@ -782,7 +782,10 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
 
   return (
     <div 
-      className={twMerge(clsx("relative flex h-full items-center justify-center bg-muted/90", className))}
+      className={clsx(
+        "rc-container", // Use custom CSS class instead of Tailwind
+        className
+      )}
       style={{ touchAction: 'none' }} // Keep touchAction none for the container
       // Attach unified handler to all interaction events on the container
       // This helps capture mouseleave correctly even if the video element itself isn't hovered
@@ -797,7 +800,7 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
     >
       <video
         ref={videoRef}
-        className="max-h-full h-full max-w-full object-contain cursor-none"
+        className="rc-video" // Use custom CSS class
         autoPlay
         playsInline
         tabIndex={0} // Make it focusable
@@ -817,9 +820,9 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
         }}
       />
       {!isConnected && (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="rc-placeholder-wrapper">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary mx-auto mb-2"></div>
+            <div className="rc-spinner"></div>
             <p className="text-sm text-muted-foreground">Connecting...</p>
           </div>
         </div>

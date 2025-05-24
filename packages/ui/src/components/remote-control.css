@@ -1,0 +1,81 @@
+/* Remote Control Component Styles */
+.rc-container {
+  position: relative;
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.05);
+  touch-action: none;
+}
+
+.rc-video {
+  max-height: 100%;
+  height: 100%;
+  max-width: 100%;
+  width: 100%;
+  object-fit: contain;
+  outline: none;
+  pointer-events: none;
+  cursor: none;
+}
+
+.rc-placeholder-wrapper {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.rc-spinner {
+  animation: rc-spin 1s linear infinite;
+  border-radius: 50%;
+  height: var(--rc-spinner-size, 32px);
+  width: var(--rc-spinner-size, 32px);
+  border-top: 2px solid var(--rc-spinner-color, #3b82f6);
+  border-right: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+  border-left: 2px solid transparent;
+  margin: 0 auto 8px;
+}
+
+@keyframes rc-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Optional: Theme-aware styles */
+.rc-container.light-theme {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.rc-container.dark-theme {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Responsive text styles */
+.text-center {
+  text-align: center;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.text-muted-foreground {
+  color: #6b7280;
+}
+
+/* CSS Custom Properties for theming */
+:root {
+  --rc-spinner-size: 32px;
+  --rc-spinner-color: #3b82f6;
+  --rc-muted-foreground: #6b7280;
+} 

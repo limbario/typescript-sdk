@@ -15,6 +15,23 @@ Add the dependency to your frontend package.
 npm install @limbar/ui
 ```
 
+### Styling
+
+The components come with their own CSS styles and **do not require Tailwind CSS** or any other CSS framework. The styles are self-contained and included automatically when you import the components.
+
+You can customize the appearance by:
+- Using CSS custom properties (CSS variables) for theming
+- Adding custom CSS classes via the `className` prop
+- Overriding the default styles with your own CSS
+
+```css
+/* Example: Customize spinner color */
+:root {
+  --rc-spinner-color: #your-brand-color;
+  --rc-muted-foreground: #your-text-color;
+}
+```
+
 It's recommended that you trigger creation over a backend endpoint of
 yours that will call Limbar with an organization token. Making the
 call from browser to Limbar directly risks leaking your organization token.
