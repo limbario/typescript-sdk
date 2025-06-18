@@ -821,10 +821,8 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
       />
       {!isConnected && (
         <div className="rc-placeholder-wrapper">
-          <div className="text-center">
-            <div className="rc-spinner"></div>
-            <p className="text-sm text-muted-foreground">Connecting...</p>
-          </div>
+          <div className="rc-spinner"></div>
+          <p className="rc-placeholder-content">Connecting...</p>
         </div>
       )}
     </div>
