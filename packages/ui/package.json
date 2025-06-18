@@ -1,7 +1,7 @@
 {
   "name": "@limbar/ui",
   "private": false,
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "React UI components written in TypeScript for embedding Limbar products such as remote control of Android emulators and iOS simulators in web applications.",
   "type": "module",
   "files": [
