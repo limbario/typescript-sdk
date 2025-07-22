@@ -1,5 +1,11 @@
 import WebSocket from "modern-isomorphic-ws";
 
+import { startTcpProxy } from './proxy.js';
+import type { ProxyHandle } from './proxy.js';
+export type { ProxyHandle } from './proxy.js';
+
+import { exec } from 'node:child_process';
+
 /**
  * A client for interacting with a Limbar instance
  */
@@ -13,6 +19,12 @@ export type InstanceClient = {
    * Disconnect from the Limbar instance
    */
   disconnect: () => void;
+
+  /**
+   * Establish an ADB tunnel to the instance.
+   * Returns the local TCP port and a cleanup function.
+   */
+  startAdbTunnel: () => Promise<ProxyHandle>;
 };
 
 /**
@@ -28,6 +40,10 @@ export type InstanceClientOptions = {
    * WebRTC endpoint URL for the Limbar instance
    */
   webrtcUrl: string;
+  /**
+   * Connection URL for the Limbar instance
+   */
+  adbUrl: string;
   /**
    * Authentication token for accessing the Limbar instance
    */
@@ -70,9 +86,8 @@ type ServerMessage = ScreenshotResponse | ScreenshotErrorResponse | { type: stri
 export async function createInstanceClient(
   options: InstanceClientOptions
 ): Promise<InstanceClient> {
-  const webrtcUrl = options.webrtcUrl;
   const token = options.token;
-  const serverAddress = `${webrtcUrl}?token=${token}`;
+  const serverAddress = `${options.webrtcUrl}?token=${token}`;
   const logLevel = options.logLevel ?? 'info';
 
   let ws: WebSocket | null = null;
@@ -104,6 +119,7 @@ export async function createInstanceClient(
       resolveConnection({
         screenshot,
         disconnect,
+        startAdbTunnel,
       });
     });
 
@@ -230,6 +246,28 @@ export async function createInstanceClient(
         logger.info('Closing WebSocket connection.');
         ws.close();
       }
+    };
+
+    /**
+     * Opens a WebSocket TCP proxy for the ADB port and connects the local adb
+     * client to it.
+     */
+    const startAdbTunnel = async () => {
+      const { port, cleanup } = await startTcpProxy(options.adbUrl, token);
+      try {
+        await new Promise<void>((resolve, reject) => {
+          exec(`adb connect localhost:${port}`, (err) => {
+            if (err) return reject(err);
+            resolve();
+          });
+        });
+        logger.info(`ADB connected on localhost:${port}`);
+      } catch (err) {
+        cleanup();
+        throw err;
+      }
+
+      return { port, cleanup } as ProxyHandle;
     };
   });
 }
