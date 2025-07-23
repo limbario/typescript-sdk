@@ -24,11 +24,12 @@ type ExcludeOpts<T extends (...args: any) => any> = T extends (
 // It maps the generated *functions* to methods with the same parameters (minus 'opts').
 export type RegionClient = {
   // Iterate over keys of the generated module
-  [K in keyof typeof Generated as // Only include keys whose values are functions
-  (typeof Generated)[K] extends (...args: any) => any
+  [K in keyof typeof Generated as (typeof Generated)[K] extends (
+    // Only include keys whose values are functions
+    ...args: any
+  ) => any
     ? K
-    : never]: // If the value is a function, define its signature in the client type
-  (typeof Generated)[K] extends (...args: any) => any
+    : never]: (typeof Generated)[K] extends (...args: any) => any // If the value is a function, define its signature in the client type
     ? (
         ...args: ExcludeOpts<(typeof Generated)[K]>
       ) => ReturnType<(typeof Generated)[K]>
