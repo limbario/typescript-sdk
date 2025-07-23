@@ -5,7 +5,7 @@ import {
   InstanceClient,
 } from "@limbar/api";
 
-import type { ProxyHandle } from "@limbar/api";
+import type { Proxy } from "@limbar/api";
 
 async function main() {
   dotenv.config();
@@ -40,13 +40,13 @@ async function main() {
   const { webrtcUrl, connectionUrl: adbUrl } = instanceResp.data.status;
 
   let client: InstanceClient | null = null;
-  let tunnelHandle: ProxyHandle | null = null;
+  let tunnelHandle: Proxy | null = null;
   try {
     client = await createInstanceClient({ webrtcUrl, adbUrl, token });
     console.log("Client created and connection successful.");
 
     tunnelHandle = await client.startAdbTunnel();
-    console.log(`ADB tunnel established on localhost:${tunnelHandle.port}`);
+    console.log(`ADB tunnel established on ${tunnelHandle.address.address}:${tunnelHandle.address.port}`);
     console.log("Interrupt with Ctrl+C to close");
 
     await new Promise<void>((resolve) => {

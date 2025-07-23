@@ -1,4 +1,4 @@
-# Screenshot Example
+# ADB Tunnel Example
 
 This example shows how to start an ADB tunnel for an Android instance on [Limbar](https://limbar.io)
 so that `adb` daemon can recognize and connect to it.

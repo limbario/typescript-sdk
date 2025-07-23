@@ -1,8 +1,8 @@
 import WebSocket from "modern-isomorphic-ws";
 
 import { startTcpProxy } from "./proxy.js";
-import type { ProxyHandle } from "./proxy.js";
-export type { ProxyHandle } from "./proxy.js";
+import type { Proxy } from "./proxy.js";
+export type { Proxy } from "./proxy.js";
 
 import { exec } from "node:child_process";
 
@@ -24,7 +24,7 @@ export type InstanceClient = {
    * Establish an ADB tunnel to the instance.
    * Returns the local TCP port and a cleanup function.
    */
-  startAdbTunnel: () => Promise<ProxyHandle>;
+  startAdbTunnel: () => Promise<Proxy>;
 };
 
 /**
@@ -269,22 +269,21 @@ export async function createInstanceClient(
      * Opens a WebSocket TCP proxy for the ADB port and connects the local adb
      * client to it.
      */
-    const startAdbTunnel = async () => {
-      const { port, close } = await startTcpProxy(options.adbUrl, token);
+    const startAdbTunnel = async (hostname?: string, port?: number): Promise<Proxy> => {
+      const { address, close } = await startTcpProxy(options.adbUrl, token, hostname, port);
       try {
         await new Promise<void>((resolve, reject) => {
-          exec(`adb connect localhost:${port}`, (err) => {
+          exec(`adb connect ${address.address}:${address.port}`, (err) => {
             if (err) return reject(err);
             resolve();
           });
         });
-        logger.debug(`ADB connected on localhost:${port}`);
+        logger.debug(`ADB connected on ${address.address}`);
       } catch (err) {
         close();
         throw err;
       }
-
-      return { port, close } as ProxyHandle;
+      return { address, close };
     };
     ws.on("open", () => {
       logger.debug(`Connected to ${serverAddress}`);

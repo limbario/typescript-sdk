@@ -1,9 +1,10 @@
 import * as net from "net";
 import WebSocket from "modern-isomorphic-ws";
+import {AddressInfo} from "node:net";
 
 /** Returned by `startTcpProxy` – holds the chosen localhost port and a close callback. */
-export interface ProxyHandle {
-  port: number;
+export interface Proxy {
+  address: AddressInfo;
   close: () => void;
 }
 
@@ -19,17 +20,28 @@ export interface ProxyHandle {
  *
  * @param remoteURL Remote WebSocket endpoint (e.g. wss://example.com/instance)
  * @param token     Bearer token sent as `Authorization` header
+ * @param hostname  Optional IP address to listen on. Default is 127.0.0.1
+ * @param port      Optional port number to listen on. Default is to ask Node.js
+ *                  to find an available non-privileged port.
  */
 export async function startTcpProxy(
-  remoteURL: string,
-  token: string,
-): Promise<ProxyHandle> {
+    remoteURL: string,
+    token: string,
+    hostname?: string,
+    port?: number,
+): Promise<Proxy> {
   // Disallow usage in browsers
   if (
     typeof window !== "undefined" &&
     typeof (window as any).document !== "undefined"
   ) {
     throw new Error("startTcpProxy cannot be used in a browser environment");
+  }
+  if (!hostname) {
+    hostname = "127.0.0.1";
+  }
+  if (!port) {
+    port = 0
   }
   return new Promise((resolve, reject) => {
     const server = net.createServer();
@@ -66,7 +78,7 @@ export async function startTcpProxy(
         close();
         return reject(new Error("Failed to obtain listening address"));
       }
-      resolve({ port: address.port, close });
+      resolve({ address, close });
     });
 
     // On first TCP connection
@@ -120,6 +132,6 @@ export async function startTcpProxy(
     });
 
     // Start listening
-    server.listen(0, "127.0.0.1");
+    server.listen(port, hostname);
   });
 }
