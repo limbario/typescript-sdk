@@ -1,10 +1,10 @@
-import * as net from 'net';
-import WebSocket from 'modern-isomorphic-ws';
+import * as net from "net";
+import WebSocket from "modern-isomorphic-ws";
 
-/** Returned by `startTcpProxy` – holds the chosen localhost port and a cleanup callback. */
+/** Returned by `startTcpProxy` – holds the chosen localhost port and a close callback. */
 export interface ProxyHandle {
   port: number;
-  cleanup: () => void;
+  close: () => void;
 }
 
 /**
@@ -19,16 +19,17 @@ export interface ProxyHandle {
  *
  * @param remoteURL Remote WebSocket endpoint (e.g. wss://example.com/instance)
  * @param token     Bearer token sent as `Authorization` header
- * @param signal    Optional `AbortSignal` for cancellation
  */
 export async function startTcpProxy(
   remoteURL: string,
   token: string,
-  signal?: AbortSignal
 ): Promise<ProxyHandle> {
   // Disallow usage in browsers
-  if (typeof window !== 'undefined' && typeof (window as any).document !== 'undefined') {
-    throw new Error('startTcpProxy cannot be used in a browser environment');
+  if (
+    typeof window !== "undefined" &&
+    typeof (window as any).document !== "undefined"
+  ) {
+    throw new Error("startTcpProxy cannot be used in a browser environment");
   }
   return new Promise((resolve, reject) => {
     const server = net.createServer();
@@ -36,96 +37,89 @@ export async function startTcpProxy(
     let ws: WebSocket | undefined;
     let pingInterval: NodeJS.Timeout | undefined;
 
-    // Cleanup helper
-    const cleanup = () => {
+    // close helper
+    const close = () => {
       if (pingInterval) {
         clearInterval(pingInterval);
         pingInterval = undefined;
       }
       if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.close(1000, 'cleanup');
+        ws.close(1000, "close");
       }
       if (server.listening) {
         server.close();
       }
     };
 
-    // Abort support
-    if (signal?.aborted) {
-      return reject(new Error('Operation aborted before start'));
-    }
-    signal?.addEventListener('abort', () => {
-      cleanup();
-      reject(new Error('Operation aborted'));
-    });
+    // No AbortController support – proxy can be closed via the returned handle
 
     // TCP server error
-    server.once('error', (err) => {
-      cleanup();
+    server.once("error", (err) => {
+      close();
       reject(new Error(`TCP server error: ${err.message}`));
     });
 
     // Listening
-    server.once('listening', () => {
+    server.once("listening", () => {
       const address = server.address();
-      if (!address || typeof address === 'string') {
-        cleanup();
-        return reject(new Error('Failed to obtain listening address'));
+      if (!address || typeof address === "string") {
+        close();
+        return reject(new Error("Failed to obtain listening address"));
       }
-      resolve({ port: address.port, cleanup });
+      resolve({ port: address.port, close });
     });
 
     // On first TCP connection
-    server.on('connection', (tcpSocket) => {
+    server.on("connection", (tcpSocket) => {
       // Single-connection proxy
       server.close();
 
       ws = new WebSocket(remoteURL, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       // WebSocket error
-      ws.once('error', (err) => {
-        console.error('WebSocket error:', err);
+      ws.once("error", (err) => {
+        console.error("WebSocket error:", err);
         tcpSocket.destroy();
-        cleanup();
+        close();
       });
 
-      ws.once('open', () => {
+      ws.once("open", () => {
         const socket = ws as WebSocket; // non-undefined after open
 
         pingInterval = setInterval(() => {
-            if (socket.readyState === WebSocket.OPEN) {
-              (socket as any).ping();
-            }
-          }, 30_000);
+          if (socket.readyState === WebSocket.OPEN) {
+            (socket as any).ping();
+          }
+        }, 30_000);
 
         // TCP → WS
-        tcpSocket.on('data', (chunk) => {
+        tcpSocket.on("data", (chunk) => {
           if (socket.readyState === WebSocket.OPEN) {
             socket.send(chunk);
           }
         });
 
         // WS → TCP
-        socket.on('message', (data) => {
+        socket.on("message", (data) => {
           if (!tcpSocket.destroyed) {
             tcpSocket.write(data as Buffer);
           }
         });
       });
 
-      // Mutual cleanup
-      tcpSocket.on('close', cleanup);
-      tcpSocket.on('error', (err) => {
-        console.error('TCP socket error:', err);
-        cleanup();
+      // Mutual close
+      tcpSocket.on("close", close);
+      tcpSocket.on("error", (err) => {
+        console.error("TCP socket error:", err);
+        close();
       });
 
-      ws.on('close', () => tcpSocket.destroy());
+      ws.on("close", () => tcpSocket.destroy());
     });
 
     // Start listening
-    server.listen(0, '127.0.0.1');
+    server.listen(0, "127.0.0.1");
   });
 }
