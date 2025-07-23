@@ -8,7 +8,7 @@ to `/tmp/` folder.
 
 ## Quick Start
 
-1. Edit [`index.ts`](./index.ts) with your instance's `webrtcUrl` and `token`.
+1. Rename `.env.example` to `.env` and update its `ORGANIZATION_ID` and `API_TOKEN` values which you can create in [Limbar Console](https://console.limbar.io).
 1. Run.
    ```bash
    npm install
