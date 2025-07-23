@@ -1,33 +1,35 @@
-// Example demonstrating automatic ADB tunnel.
+import dotenv from "dotenv";
 import {
   createRegionClient,
   createInstanceClient,
   InstanceClient,
-} from '@limbar/api';
+} from "@limbar/api";
 
-import type { AndroidInstanceCreate } from '@limbar/api';
+import type { ProxyHandle } from "@limbar/api";
 
 async function main() {
-  const organizationId = '<org id>';
-  const token = 'lim_tokenvalue';
+  dotenv.config();
+  const token = process.env.API_TOKEN;
+  const organizationId = process.env.ORGANIZATION_ID;
+  const region = process.env.REGION;
 
-  // Region API base URL (change the host/region accordingly)
-  const baseUrl = 'https://eu-north1.limbar.net';
+  if (!token || !organizationId || !region) {
+    throw Error(
+      "Error: Missing required environment variables (API_TOKEN, ORGANIZATION_ID, REGION).",
+    );
+  }
 
-  // Create a Region API client
-  const regionClient = createRegionClient({ baseUrl, token });
-
-  // Create (or get) an instance
-  const instanceName = 'tunnel-example';
-  const instanceSpec: AndroidInstanceCreate = {
-    metadata: {
-      name: instanceName,
-      labels: {},
-    },
-  };
-
+  const regionClient = createRegionClient({
+    baseUrl: `https://${region}.limbar.net`,
+    token: token,
+  });
   const instanceResp = await regionClient.getOrCreateInstance(organizationId, {
-    instance: instanceSpec,
+    instance: {
+      metadata: {
+        name: "tunnel-example",
+        labels: {},
+      },
+    },
     wait: true,
   });
 
@@ -35,44 +37,53 @@ async function main() {
     throw new Error(`Failed to get instance: ${instanceResp.status}`);
   }
 
-  const webrtcUrl = instanceResp.data.status.webrtcUrl;
-  const adbUrl = instanceResp.data.status.connectionUrl;
+  const { webrtcUrl, connectionUrl: adbUrl } = instanceResp.data.status;
 
   let client: InstanceClient | null = null;
-  let tunnelHandle: import('@limbar/api').ProxyHandle | null = null;
+  let tunnelHandle: ProxyHandle | null = null;
   try {
     client = await createInstanceClient({ webrtcUrl, adbUrl, token });
-    console.log('Client created and connection successful.');
+    console.log("Client created and connection successful.");
 
     tunnelHandle = await client.startAdbTunnel();
     console.log(`ADB tunnel established on localhost:${tunnelHandle.port}`);
+    console.log("Interrupt with Ctrl+C to close");
 
-    // Block until SIGINT or SIGTERM
     await new Promise<void>((resolve) => {
-      const shutdown = async () => {
-        console.log('Received termination signal, cleaning up...');
-        if (tunnelHandle) tunnelHandle.cleanup();
-        if (client) client.disconnect();
-
-        try {
-          await regionClient.deleteAndroidInstance(organizationId, instanceName);
-          console.log('Instance deleted successfully.');
-        } catch (err) {
-          console.error('Failed to delete instance:', err);
-        }
-
+      const handleSignal = () => {
+        console.log("Received termination signal.");
+        // Remove the handlers so further signals don’t trigger the
+        // default behaviour (which is to exit immediately with code 130).
+        process.off("SIGINT", handleSignal);
+        process.off("SIGTERM", handleSignal);
         resolve();
       };
-
-      process.once('SIGINT', shutdown);
-      process.once('SIGTERM', shutdown);
+      process.on("SIGINT", handleSignal);
+      process.on("SIGTERM", handleSignal);
     });
-
   } catch (error) {
-    console.error('An error occurred while running the tunnel example:', error);
+    console.error("Unexpected error while running the tunnel example:", error);
+  }
+
+  console.log("Closing tunnel...");
+  if (tunnelHandle) tunnelHandle.close();
+  if (client) client.disconnect();
+
+  try {
+    console.log(`Deleting instance ${instanceResp.data.metadata.name}`);
+    const delResp = await regionClient.deleteAndroidInstance(
+      organizationId,
+      instanceResp.data.metadata.name,
+    );
+    if (delResp.status !== 200) {
+      console.log(`Failed to delete instance, status: ${delResp.data.message}`);
+    }
+    console.log("Instance deleted successfully.");
+  } catch (error) {
+    console.error("Failed to delete instance:", error);
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error("Unhandled error in main execution:", err);
 });

@@ -13,8 +13,8 @@
     ],
     "scripts": {
       "test": "echo \"Error: no test specified\" && exit 1",
-      "start": "tsx watch index.ts",
-      "build": "tsc -b"
+      "start": "npm run build && node dist/index.js",
+      "build": "tsc -p ."
     },
     "author": "",
     "license": "ISC",
