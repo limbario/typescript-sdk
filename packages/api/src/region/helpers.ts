@@ -82,7 +82,17 @@ export async function getOrCreateInstance(
       name: generateName(labels),
       labels,
     },
+    spec: {
+      ...body.instance.spec,
+    },
   };
+  if (body.instance.spec?.assets && body.instance.spec.assets.length > 0) {
+    instanceCreatePayload.spec!.assets = body.instance.spec.assets.map((asset) => ({
+      kind: "App",
+      source: "URL",
+      url: asset.url,
+    }));
+  }
   return putAndroidInstance(
     organizationId,
     {
