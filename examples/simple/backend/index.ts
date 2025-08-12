@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import { createRegionClient } from "@limbar/api";
+import { createRegionClient, createBackendClient } from "@limbar/api";
 
 dotenv.config();
 const apiToken = process.env.API_TOKEN;
@@ -20,6 +20,11 @@ const regionClient = createRegionClient({
   token: apiToken,
 });
 
+const backendClient = createBackendClient({
+  baseUrl: "https://api.limbar.io",
+  token: apiToken,
+});
+
 const app = express();
 const port = 3000;
 app.use(express.json());
@@ -27,7 +32,7 @@ app.use(cors());
 
 app.post(
   "/create-instance",
-  async (req: Request<{}, {}, { name?: string }>, res: Response) => {
+  async (req: Request<{}, {}, { name?: string, assets?: { path: string }[] }>, res: Response) => {
     const { name } = req.body;
     if (!name) {
       return res.status(400).json({
@@ -35,10 +40,34 @@ app.post(
         message: "name is required",
       });
     }
+    const downloadUrls: string[] = [];
+    if (req.body.assets?.length) {
+      try {
+        await Promise.all(req.body.assets?.map(async (asset) => {
+          console.log("Ensuring asset is in place", asset.path);
+          const assetResponse = await backendClient.putAndUploadAsset(organizationId, asset.path);
+          downloadUrls.push(assetResponse.signedDownloadUrl);
+      }));
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        return res.status(500).json({
+          status: "error",
+          message: "Failed to upload assets: " + message,
+        });
+      }
+    }
     try {
       const result = await regionClient.getOrCreateInstance(organizationId, {
         instance: {
           metadata: { name },
+          spec: (downloadUrls.length > 0 ? {
+            assets: downloadUrls.map((url) => ({
+              kind: "App",
+              source: "URL",
+              url,
+            })),
+          } : {}),
         },
         wait: true,
       });

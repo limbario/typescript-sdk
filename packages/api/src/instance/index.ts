@@ -25,6 +25,12 @@ export type InstanceClient = {
    * Returns the local TCP port and a cleanup function.
    */
   startAdbTunnel: () => Promise<Proxy>;
+  /**
+   * Send an asset URL to the instance. The instance will download the asset
+   * and process it (currently APK install is supported). Resolves on success,
+   * rejects with an Error on failure.
+   */
+  sendAsset: (url: string) => Promise<void>;
 };
 
 /**
@@ -76,9 +82,22 @@ type ScreenshotErrorResponse = {
   id: string;
 };
 
+type AssetRequest = {
+  type: "asset";
+  url: string;
+};
+
+type AssetResultResponse = {
+  type: "assetResult";
+  result: "success" | "failure" | string;
+  url: string;
+  message?: string;
+};
+
 type ServerMessage =
   | ScreenshotResponse
   | ScreenshotErrorResponse
+  | AssetResultResponse
   | { type: string; [key: string]: unknown };
 
 /**
@@ -101,6 +120,15 @@ export async function createInstanceClient(
       rejecter: (reason?: any) => void;
     }
   > = new Map();
+
+  const assetRequests: Map<
+    string,
+    {
+      resolver: (value: void | PromiseLike<void>) => void;
+      rejecter: (reason?: any) => void;
+    }
+  > = new Map();
+
   // Logger functions
   const logger = {
     debug: (...args: any[]) => {
@@ -182,6 +210,25 @@ export async function createInstanceClient(
           );
           request.rejecter(new Error(errorMessage.message));
           screenshotRequests.delete(errorMessage.id);
+          break;
+        }
+        case "assetResult": {
+          console.log("Received assetResult:", message);
+          const request = assetRequests.get(message.url as string);
+          if (!request) {
+            logger.warn(`Received assetResult for unknown or already handled url: ${message.url}`);
+            break;
+          }
+          if (message.result === "success") {
+            console.log("Asset result is success");
+            request.resolver();
+            assetRequests.delete(message.url as string);
+            break;
+          }
+          const errorMessage = typeof message.message === "string" && message.message ? message.message : `Asset processing failed: ${JSON.stringify(message)}`;
+          console.log("Asset result is failure", errorMessage);
+          request.rejecter(new Error(errorMessage));
+          assetRequests.delete(message.url as string);
           break;
         }
         default:
@@ -285,12 +332,34 @@ export async function createInstanceClient(
       }
       return { address, close };
     };
+
+    const sendAsset = async (url: string): Promise<void> => {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        return Promise.reject(
+          new Error("WebSocket is not connected or connection is not open."),
+        );
+      }
+      const assetRequest: AssetRequest = {
+        type: "asset",
+        url,
+      };
+      ws.send(JSON.stringify(assetRequest), (err?: Error) => {
+        if (err) {
+          logger.error("Failed to send asset request:", err);
+          return Promise.reject(err);
+        }
+      });
+      return new Promise<void>((resolve, reject) => {
+        assetRequests.set(url, { resolver: resolve, rejecter: reject });
+      });
+    }
     ws.on("open", () => {
       logger.debug(`Connected to ${serverAddress}`);
       resolveConnection({
         screenshot,
         disconnect,
         startAdbTunnel,
+        sendAsset,
       });
     });
   });
