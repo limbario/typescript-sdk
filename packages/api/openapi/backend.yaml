@@ -1,0 +1,168 @@
+openapi: "3.0.0"
+info:
+  version: 0.1.0
+  title: Limbar API
+paths:
+  /organizations/{organizationId}/assets:
+    get:
+      summary: List organization's all assets with given filters. If none given, return all assets.
+      operationId: listAssets
+      parameters:
+        - name: organizationId
+          description: Organization ID
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: md5Filter
+          description: Query by file md5
+          required: false
+          in: query
+          schema:
+            type:
+              string
+        - name: nameFilter
+          description: Query by file name
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: includeDownloadUrl
+          description: Toggles whether a download URL should be included in the response
+          required: false
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Asset"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIError"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIError"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIError"
+    put:
+      summary: |-
+        If organization already has a file with given md5 a new asset referencing the same file will be created with given name.
+        If not, an upload URL will be returned where the uploaded file's md5 MUST match with the md5 provided in this request.
+        In all cases a signed download URL is returned but upload URL is returned only when you need to upload, e.g.
+        we don't have the file in your organization folder.
+      operationId: putAsset
+      parameters:
+        - name: organizationId
+          description: Organization ID
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssetPut"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetPutResult"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIError"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIError"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIError"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIError"
+components:
+  schemas:
+    APIError:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+    AssetPutResult:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        md5:
+          type: string
+        signedUploadUrl:
+          type: string
+        signedDownloadUrl:
+          type: string
+      required:
+        - id
+        - name
+        - md5
+        - signedDownloadUrl
+    AssetPut:
+      type: object
+      properties:
+        name:
+          type: string
+        md5:
+          type: string
+          description: |-
+            Base64-encoded md5 of the file to be uploaded. The same format as AWS expects.
+            Can be generated via "openssl dgst -md5 -binary <file path> | base64"
+      required:
+        - name
+        - md5
+    Asset:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        md5:
+          type: string
+        signedDownloadUrl:
+          type: string
+      required:
+        - id
+        - name
+        - md5
