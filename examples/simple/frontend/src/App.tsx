@@ -8,6 +8,22 @@ function App() {
   } | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
+  // State to hold asset paths that user wants to upload
+  const [assetPaths, setAssetPaths] = useState<string[]>([""]);
+
+  const handleAssetPathChange = (index: number, value: string) => {
+    const newPaths = [...assetPaths];
+    newPaths[index] = value;
+    setAssetPaths(newPaths);
+  };
+
+  const addAssetInput = () => {
+    setAssetPaths([...assetPaths, ""]);
+  };
+
+  const removeAssetInput = (index: number) => {
+    setAssetPaths(assetPaths.filter((_, i) => i !== index));
+  };
   
   const createInstance = async () => {
     try {
@@ -21,7 +37,10 @@ function App() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          name: `sdk-example`
+          name: `sdk-example`,
+          assets: assetPaths
+            .filter((p) => p.trim() !== "")
+            .map((path) => ({ path })),
         })
       });
       const data = await response.json();
@@ -46,6 +65,56 @@ function App() {
       
       {!instanceData && (
         <div style={{ marginBottom: '20px' }}>
+          {/* Asset path inputs */}
+          <div style={{ marginBottom: '20px' }}>
+            <h3>Assets</h3>
+            {assetPaths.map((path, idx) => (
+              <div
+                key={idx}
+                style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}
+              >
+                <input
+                  type="text"
+                  placeholder="Enter asset file path"
+                  value={path}
+                  onChange={(e) => handleAssetPathChange(idx, e.target.value)}
+                  style={{ flex: 1, padding: '8px' }}
+                />
+                {assetPaths.length > 1 && (
+                  <button
+                    onClick={() => removeAssetInput(idx)}
+                    style={{
+                      marginLeft: '10px',
+                      padding: '8px 12px',
+                      backgroundColor: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              onClick={addAssetInput}
+              style={{
+                padding: '8px 12px',
+                fontSize: '14px',
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+              }}
+            >
+              Add Asset Path
+            </button>
+          </div>
+
+          {/* Create Instance button */}
           <button 
             onClick={createInstance}
             disabled={loading}

@@ -5,7 +5,8 @@
   "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "tsx watch index.ts",
+    "dev": "tsx watch index.ts",
+    "start": "tsc -b && node dist/index.js",
     "build": "tsc -b"
   },
   "author": "",

@@ -26,13 +26,17 @@ export async function putAndUploadAsset(
     throw new Error(`Failed to create asset: ${assetsResponse.status} ${assetsResponse.data.message}`);
   }
   if (assetsResponse.data.signedUploadUrl) {
-    // Upload the file to the signed upload URL
     const uploadResponse = await fetch(assetsResponse.data.signedUploadUrl, {
+      headers: {
+        "Content-MD5": md5,
+        "Content-Length": data.length.toString(),
+        "Content-Type": "application/octet-stream",
+      },
       method: "PUT",
       body: data,
     });
     if (uploadResponse.status !== 200) {
-      throw new Error(`Failed to upload asset: ${uploadResponse.statusText}`);
+      throw new Error(`Failed to upload asset: ${uploadResponse.status} ${await uploadResponse.text()}`);
     }
   }
   return assetsResponse.data;

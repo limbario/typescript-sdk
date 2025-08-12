@@ -343,7 +343,6 @@ export async function createInstanceClient(
         type: "asset",
         url,
       };
-      console.log("Sending asset request:", assetRequest);
       ws.send(JSON.stringify(assetRequest), (err?: Error) => {
         if (err) {
           logger.error("Failed to send asset request:", err);
