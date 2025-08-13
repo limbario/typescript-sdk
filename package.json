@@ -4,11 +4,7 @@
   "description": "Limbar TypeScript SDK that contains API client and UI components.",
   "workspaces": [
     "packages/api",
-    "packages/ui",
-    "examples/simple/backend",
-    "examples/simple/frontend",
-    "examples/screenshot",
-    "examples/tunnel"
+    "packages/ui"
   ],
   "scripts": {
     "build": "npm run generate -ws --if-present && npm run build -ws --if-present",
