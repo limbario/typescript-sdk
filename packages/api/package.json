@@ -24,7 +24,7 @@
   "scripts": {
     "build": "tsc",
     "lint": "eslint .",
-    "generate": "oazapfts openapi/region.yaml src/region/zz_client.ts && oazapfts openapi/backend.yaml src/backend/zz_client.ts"
+    "generate": "oazapfts openapi/region.yaml src/region/zz_client.ts"
   },
   "dependencies": {
     "@paralleldrive/cuid2": "^2.2.2",

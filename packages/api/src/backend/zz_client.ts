@@ -1,9 +1,3 @@
-/**
- * Limbar API
- * 0.1.0
- * DO NOT MODIFY - This file has been generated using oazapfts.
- * See https://www.npmjs.com/package/oazapfts
- */
 import * as Oazapfts from "@oazapfts/runtime";
 import * as QS from "@oazapfts/runtime/query";
 
