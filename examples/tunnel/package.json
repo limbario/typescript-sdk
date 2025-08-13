@@ -5,25 +5,26 @@
     "type": "module",
     "main": "index.ts",
     "keywords": [
-      "sdk",
-      "example",
-      "tunnel",
-      "limbar",
-      "adb"
+        "sdk",
+        "example",
+        "tunnel",
+        "limbar",
+        "adb"
     ],
     "scripts": {
-      "test": "echo \"Error: no test specified\" && exit 1",
-      "start": "npm run build && node dist/index.js",
-      "build": "tsc -p ."
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "start": "npm run build && node dist/index.js",
+        "build": "tsc -p ."
     },
     "author": "",
     "license": "ISC",
     "dependencies": {
-      "@limbar/api": "*"
+        "@limbar/api": "0.6.0",
+        "dotenv": "^17.2.1"
     },
     "devDependencies": {
-      "tsx": "^4.16.2",
-      "typescript": "~5.5.4"
+        "@types/node": "^24.2.1",
+        "tsx": "^4.16.2",
+        "typescript": "~5.5.4"
     }
-  }
-  
+}
