@@ -1,4 +1,4 @@
-import WebSocket from "modern-isomorphic-ws";
+import { WebSocket } from "ws";
 
 import { startTcpProxy } from "./proxy.js";
 import type { Proxy } from "./proxy.js";
@@ -111,7 +111,7 @@ export async function createInstanceClient(
   const token = options.token;
   const serverAddress = `${options.webrtcUrl}?token=${token}`;
   const logLevel = options.logLevel ?? "info";
-  let ws: WebSocket | null = null;
+  let ws: WebSocket | undefined = undefined;
 
   const screenshotRequests: Map<
     string,

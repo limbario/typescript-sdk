@@ -1,10 +1,9 @@
 import * as net from "net";
-import WebSocket from "modern-isomorphic-ws";
-import {AddressInfo} from "node:net";
+import { WebSocket } from "ws";
 
 /** Returned by `startTcpProxy` – holds the chosen localhost port and a close callback. */
 export interface Proxy {
-  address: AddressInfo;
+  address: net.AddressInfo;
   close: () => void;
 }
 
@@ -30,13 +29,6 @@ export async function startTcpProxy(
     hostname?: string,
     port?: number,
 ): Promise<Proxy> {
-  // Disallow usage in browsers
-  if (
-    typeof window !== "undefined" &&
-    typeof (window as any).document !== "undefined"
-  ) {
-    throw new Error("startTcpProxy cannot be used in a browser environment");
-  }
   if (!hostname) {
     hostname = "127.0.0.1";
   }
@@ -88,6 +80,7 @@ export async function startTcpProxy(
 
       ws = new WebSocket(remoteURL, {
         headers: { Authorization: `Bearer ${token}` },
+        perMessageDeflate: false,
       });
 
       // WebSocket error

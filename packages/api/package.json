@@ -28,8 +28,8 @@
   },
   "dependencies": {
     "@paralleldrive/cuid2": "^2.2.2",
-    "modern-isomorphic-ws": "^1.0.5",
-    "oazapfts": "^6.2.2"
+    "oazapfts": "^6.2.2",
+    "ws": "^8.18.3"
   },
   "keywords": [
     "nodejs",
@@ -48,5 +48,8 @@
     "directory": "packages/api"
   },
   "author": "Limbar",
-  "license": "MIT"
+  "license": "MIT",
+  "optionalDependencies": {
+    "bufferutil": "^4.0.9"
+  }
 }
