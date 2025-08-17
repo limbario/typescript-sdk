@@ -44,9 +44,11 @@ app.post(
     if (req.body.assets?.length) {
       try {
         await Promise.all(req.body.assets?.map(async (asset) => {
+          console.time("putAndUploadAsset-"+asset.path);
           console.log("Ensuring asset is in place", asset.path);
           const assetResponse = await backendClient.putAndUploadAsset(organizationId, asset.path);
           downloadUrls.push(assetResponse.signedDownloadUrl);
+          console.timeEnd("putAndUploadAsset-"+asset.path);
       }));
       } catch (error: unknown) {
         const message =
@@ -58,6 +60,7 @@ app.post(
       }
     }
     try {
+      console.time("getOrCreateInstance");
       const result = await regionClient.getOrCreateInstance(organizationId, {
         instance: {
           metadata: { name },
@@ -71,6 +74,7 @@ app.post(
         },
         wait: true,
       });
+      console.timeEnd("getOrCreateInstance");
       if (result.status !== 200) {
         return res.status(result.status).json({
           message: `Failed to create instance: ${result.data?.message}`,
