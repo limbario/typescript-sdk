@@ -1,5 +1,10 @@
+import { WebSocket } from "ws";
+
+import { startTcpProxy } from "./proxy.js";
 import type { Proxy } from "./proxy.js";
 export type { Proxy } from "./proxy.js";
+
+import { exec } from "node:child_process";
 
 /**
  * A client for interacting with a Limbar instance
@@ -106,17 +111,7 @@ export async function createInstanceClient(
   const token = options.token;
   const serverAddress = `${options.webrtcUrl}?token=${token}`;
   const logLevel = options.logLevel ?? "info";
-
-  // Choose the proper WebSocket constructor depending on the runtime
-  const WebSocketCtor: any =
-    typeof globalThis.WebSocket === "function"
-      ? globalThis.WebSocket
-      : (await import("ws")).WebSocket;
-
-  const WS_CONNECTING = (WebSocketCtor as any).CONNECTING ?? 0;
-  const WS_OPEN = (WebSocketCtor as any).OPEN ?? 1;
-
-  let ws: any | undefined = undefined;
+  let ws: WebSocket | undefined = undefined;
 
   const screenshotRequests: Map<
     string,
@@ -155,8 +150,8 @@ export async function createInstanceClient(
     logger.debug(
       `Attempting to connect to WebSocket server at ${serverAddress}...`,
     );
-    ws = new WebSocketCtor(serverAddress);
-    ws.on("message", (data: any) => {
+    ws = new WebSocket(serverAddress);
+    ws.on("message", (data: WebSocket.Data) => {
       let message: ServerMessage;
       try {
         message = JSON.parse(data.toString());
@@ -246,7 +241,8 @@ export async function createInstanceClient(
       logger.error("WebSocket error:", err.message);
       if (
         ws &&
-        (ws.readyState === WS_CONNECTING || ws.readyState === WS_OPEN)
+        (ws.readyState === WebSocket.CONNECTING ||
+          ws.readyState === WebSocket.OPEN)
       ) {
         rejectConnection(err);
       }
@@ -261,7 +257,7 @@ export async function createInstanceClient(
     });
 
     const screenshot = async (): Promise<ScreenshotData> => {
-      if (!ws || ws.readyState !== WS_OPEN) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
         return Promise.reject(
           new Error("WebSocket is not connected or connection is not open."),
         );
@@ -320,22 +316,8 @@ export async function createInstanceClient(
      * Opens a WebSocket TCP proxy for the ADB port and connects the local adb
      * client to it.
      */
-    const startAdbTunnel = async (
-      hostname?: string,
-      port?: number,
-    ): Promise<Proxy> => {
-      const [{ startTcpProxy }, { exec }] = await Promise.all([
-        import("./proxy.js"),
-        import("node:child_process"),
-      ]);
-
-      const { address, close } = await startTcpProxy(
-        options.adbUrl,
-        token,
-        hostname,
-        port,
-      );
-
+    const startAdbTunnel = async (hostname?: string, port?: number): Promise<Proxy> => {
+      const { address, close } = await startTcpProxy(options.adbUrl, token, hostname, port);
       try {
         await new Promise<void>((resolve, reject) => {
           exec(`adb connect ${address.address}:${address.port}`, (err) => {
@@ -352,7 +334,7 @@ export async function createInstanceClient(
     };
 
     const sendAsset = async (url: string): Promise<void> => {
-      if (!ws || ws.readyState !== WS_OPEN) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
         return Promise.reject(
           new Error("WebSocket is not connected or connection is not open."),
         );
