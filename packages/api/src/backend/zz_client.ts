@@ -13,6 +13,7 @@ export type Asset = {
 };
 type ApiError = {
     message: string;
+    reason?: "NoSubscription" | "NoRemainingMinutes" | "ConcurrencyLimitReached";
 };
 export type AssetPut = {
     name: string;

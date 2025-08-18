@@ -34,6 +34,7 @@ export type AndroidInstance = {
 };
 export type ApiError = {
     message: string;
+    reason?: "NoSubscription" | "NoRemainingMinutes" | "ConcurrencyLimitReached";
 };
 export type AndroidInstanceCreate = {
     metadata: {

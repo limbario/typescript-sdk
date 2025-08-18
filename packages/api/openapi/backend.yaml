@@ -118,6 +118,12 @@ components:
       properties:
         message:
           type: string
+        reason:
+          type: string
+          enum:
+            - NoSubscription
+            - NoRemainingMinutes
+            - ConcurrencyLimitReached
       required:
         - message
     AssetPutResult:
