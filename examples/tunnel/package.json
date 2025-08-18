@@ -19,7 +19,7 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
-        "@limbar/api": "0.6.1",
+        "@limbar/api": "0.6.4",
         "dotenv": "^17.2.1"
     },
     "devDependencies": {
