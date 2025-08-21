@@ -803,6 +803,7 @@ export const RemoteControl = forwardRef<RemoteControlHandle, RemoteControlProps>
         className="rc-video" // Use custom CSS class
         autoPlay
         playsInline
+        muted
         tabIndex={0} // Make it focusable
         style={{outline: 'none', pointerEvents: 'none'}}
         onKeyDown={handleKeyboard}
